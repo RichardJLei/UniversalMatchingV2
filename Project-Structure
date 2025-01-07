@@ -1,0 +1,59 @@
+project-root/
+├── frontend/
+│   ├── apps/                      # Feature-specific modules
+│   │   ├── auth/                  # Firebase Auth related components
+│   │   │   ├── components/
+│   │   │   ├── hooks/
+│   │   │   └── services/
+│   │   ├── app1/                  # Domain-specific feature 1
+│   │   │   ├── components/
+│   │   │   ├── hooks/
+│   │   │   └── services/
+│   │   └── app2/                  # Domain-specific feature 2
+│   │       ├── components/
+│   │       ├── hooks/
+│   │       └── services/
+│   ├── shared/
+│   │   ├── components/            # Reusable UI components
+│   │   │   ├── ui/               # Shadcn/UI components
+│   │   │   └── common/           # Custom shared components
+│   │   ├── layouts/              # Layout components
+│   │   ├── contexts/             # React contexts
+│   │   └── utils/                # Utility functions
+│   ├── pages/                    # Page-level components
+│   ├── styles/                   # Global styles
+│   │   └── globals.css           # Global Tailwind CSS
+│   ├── config/                   # Frontend configuration
+│   │   └── firebase.ts           # Firebase configuration
+│   ├── .env                      # Frontend environment variables
+│   └── package.json
+│
+├── backend/
+│   ├── apps/                     # Domain-specific features
+│   │   ├── app1/
+│   │   │   ├── routes/
+│   │   │   ├── models/
+│   │   │   └── services/
+│   │   └── app2/
+│   │       ├── routes/
+│   │       ├── models/
+│   │       └── services/
+│   ├── services/                 # External integrations
+│   │   ├── gcs/                 # Google Cloud Storage
+│   │   ├── mongodb/             # MongoDB connection
+│   │   └── firebase/            # Firebase Admin SDK
+│   ├── shared/
+│   │   ├── middleware/          # Auth & RBAC
+│   │   └── utils/               # Utility functions
+│   ├── config/
+│   │   └── config.py            # Configuration settings
+│   ├── requirements.txt
+│   └── .env                     # Backend environment variables
+│
+├── docs/                        # Project documentation
+│   ├── api/
+│   └── setup/
+│
+└── docker/                      # Docker configuration
+    ├── frontend/
+    └── backend/ 
