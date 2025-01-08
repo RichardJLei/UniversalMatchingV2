@@ -20,3 +20,37 @@ Frontend Folder Placement:
     Utilities in \frontend\shared\utils.
     Page-Level Components in \frontend\pages.
     Frontend Environment Variables in \frontend\.env.
+
+## Environment Configuration
+
+### Environment Files
+- `.env.template` - Template with all required parameters
+- `.env` - Development environment settings
+- `.env.integration` - Integration test settings
+
+### Usage
+1. Copy `.env.template` to create new environment files
+2. Never commit `.env` or `.env.integration`
+3. Keep parameters consistent between environments
+4. Use different values for development vs testing
+
+### Parameter Naming
+- Use UPPERCASE for all environment variables
+- Use underscores for word separation
+- Group related variables with common prefixes
+
+### Required Parameters
+Database:
+- DATABASE_PROVIDER: Service provider (e.g., mongodb)
+- MONGODB_CONNECTION_STRING: Connection URL
+- MONGODB_DATABASE: Database name
+
+Firebase:
+- AUTH_PROVIDER: Authentication provider (firebase)
+- FIREBASE_PROJECT_ID: Google project ID
+- GOOGLE_APPLICATION_CREDENTIALS: Path to credentials
+
+Storage:
+- STORAGE_PROVIDER: Storage provider (gcs, s3)
+- GCS_BUCKET_NAME: Storage bucket name
+- GOOGLE_CLOUD_PROJECT: Must match FIREBASE_PROJECT_ID

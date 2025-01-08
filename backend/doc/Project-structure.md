@@ -21,6 +21,7 @@
   - File upload with signed URLs
   - File deletion
   - Error handling
+  - Permission management
 - Tests:
   - Integration tests with Google Cloud Storage
   - File lifecycle management

@@ -10,25 +10,25 @@ from backend.services.interfaces.storage import StorageService
 class TestGCSStorageIntegration:
     @pytest.fixture
     async def storage_service(self, integration_config) -> StorageService:
-        if not integration_config.GCS_BUCKET_NAME:
-            pytest.skip("GCS bucket name not configured")
+        if not integration_config.STORAGE_BUCKET_NAME:
+            pytest.skip("Storage bucket name not configured")
             
-        if not integration_config.GOOGLE_CLOUD_PROJECT:
-            pytest.skip("Google Cloud project ID not configured")
+        if not integration_config.STORAGE_PROJECT_ID:
+            pytest.skip("Storage project ID not configured")
             
         # Get absolute path to credentials file
         cred_path = os.path.join(
             os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-            integration_config.GOOGLE_APPLICATION_CREDENTIALS
+            integration_config.STORAGE_CREDENTIALS_PATH
         )
         
         if not os.path.exists(cred_path):
             pytest.skip(f"Credentials file not found at {cred_path}")
         
         service = GCSStorageService(
-            bucket_name=integration_config.GCS_BUCKET_NAME,
+            bucket_name=integration_config.STORAGE_BUCKET_NAME,
             credentials_path=cred_path,
-            project_id=integration_config.GOOGLE_CLOUD_PROJECT
+            project_id=integration_config.STORAGE_PROJECT_ID
         )
         yield service
 

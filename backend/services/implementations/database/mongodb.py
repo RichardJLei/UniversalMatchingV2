@@ -26,10 +26,16 @@ class MongoDBService(DatabaseService):
         result = await self.db[collection].insert_one(document)
         return str(result.inserted_id)
 
-    async def update_one(self, collection: str, query: Dict[str, Any], update: Dict[str, Any]) -> bool:
+    async def update_one(self, collection: str, filter_dict: dict, update_dict: dict) -> bool:
         """Update a single document"""
-        result = await self.db[collection].update_one(query, {'$set': update})
-        return result.modified_count > 0
+        try:
+            result = await self.db[collection].update_one(
+                filter_dict,
+                {"$set": update_dict}  # Add $set operator
+            )
+            return result.modified_count > 0
+        except Exception as e:
+            raise ValueError(f"Failed to update document: {str(e)}")
 
     async def delete_one(self, collection: str, query: Dict[str, Any]) -> bool:
         """Delete a single document"""

@@ -129,6 +129,8 @@ celerybeat.pid
 
 # Environments
 .env
+.env.integration
+!.env.template  # Include template file in version control
 .venv
 env/
 venv/

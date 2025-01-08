@@ -1,5 +1,5 @@
 from typing import BinaryIO, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from google.cloud import storage
 from google.oauth2 import service_account
 import os
@@ -33,13 +33,19 @@ class GCSStorageService(StorageService):
         Upload a file to GCS and return a signed URL that's valid for 1 hour
         """
         try:
+            # Validate file
+            file.seek(0, 2)  # Seek to end
+            if file.tell() == 0:  # Check if file is empty
+                raise ValueError("Cannot upload empty file")
+            file.seek(0)  # Reset to beginning
+
             blob = self.bucket.blob(path)
             blob.upload_from_file(file, rewind=True)
             
             # Generate a signed URL that expires in 1 hour
             url = blob.generate_signed_url(
                 version="v4",
-                expiration=datetime.utcnow() + timedelta(hours=1),
+                expiration=datetime.now(UTC) + timedelta(hours=1),
                 method="GET"
             )
             return url

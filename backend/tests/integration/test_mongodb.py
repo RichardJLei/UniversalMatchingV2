@@ -16,6 +16,13 @@ class TestMongoDBIntegration:
         yield service
         await service.disconnect()
 
+    @pytest.fixture(autouse=True)
+    async def clear_collections(self, mongodb_database):
+        """Clear all collections before each test"""
+        collections = await mongodb_database.list_collection_names()
+        for collection in collections:
+            await mongodb_database.drop_collection(collection)
+
     async def test_connection(self, db_service):
         """Test database connection"""
         assert db_service is not None

@@ -1,31 +1,32 @@
 import pytest
-from typing import Generator
 from backend.config.config import Config
+from typing import Generator
 
-# Create a test config instance
-test_config_instance = Config(
-    STORAGE_PROVIDER="mock",
-    DATABASE_PROVIDER="mock",
-    AUTH_PROVIDER="mock",
-    # Test-specific settings
-    TEST_BUCKET_NAME="test-bucket",
-    TEST_DB_NAME="test-db"
-)
+@pytest.fixture(scope="session")
+def test_config_instance() -> Config:
+    """Provide a test configuration instance"""
+    return Config(
+        # Database settings
+        DATABASE_PROVIDER="mongodb",
+        MONGODB_CONNECTION_STRING="mongodb://localhost:27017",
+        MONGODB_DATABASE="test_db",
+        
+        # Firebase Auth settings
+        AUTH_PROVIDER="firebase",
+        AUTH_PROJECT_ID="test-project",
+        AUTH_CREDENTIALS_PATH="./config/test-credentials.json",
+        
+        # Storage settings
+        STORAGE_PROVIDER="gcs",
+        STORAGE_PROJECT_ID="test-project",
+        STORAGE_CREDENTIALS_PATH="./config/test-credentials.json",
+        STORAGE_BUCKET_NAME="test-bucket",
+        
+        # Override env file to prevent loading from .env
+        _env_file=None
+    )
 
-@pytest.fixture(autouse=True)
-def test_config() -> Config:
-    """Provide test configuration with mock services"""
-    return test_config_instance
-
-@pytest.fixture
-def mock_file():
-    """Mock file object for testing"""
-    class MockFile:
-        def __init__(self, filename: str):
-            self.filename = filename
-            self.content = b"test content"
-
-        def read(self):
-            return self.content
-
-    return MockFile("test.txt") 
+@pytest.fixture(scope="session")
+def mock_config(test_config_instance: Config) -> Generator[Config, None, None]:
+    """Provide the test configuration"""
+    yield test_config_instance 

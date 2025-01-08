@@ -16,15 +16,16 @@ class IntegrationConfig(BaseSettings):
     MONGODB_CONNECTION_STRING: str
     MONGODB_DATABASE: str
     
-    # Firebase settings
+    # Firebase Auth settings
     AUTH_PROVIDER: str
-    FIREBASE_PROJECT_ID: str
-    GOOGLE_APPLICATION_CREDENTIALS: str
+    AUTH_PROJECT_ID: str
+    AUTH_CREDENTIALS_PATH: str
 
     # Storage settings
     STORAGE_PROVIDER: str
-    GCS_BUCKET_NAME: str
-    GOOGLE_CLOUD_PROJECT: str
+    STORAGE_PROJECT_ID: str
+    STORAGE_CREDENTIALS_PATH: str
+    STORAGE_BUCKET_NAME: str
 
     model_config = SettingsConfigDict(
         env_file=".env.integration",
@@ -44,16 +45,15 @@ def firebase_app(integration_config):
         return firebase_admin.get_app()
     except ValueError:
         # Get absolute path to credentials file
-        import os
         cred_path = os.path.join(
             os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-            integration_config.GOOGLE_APPLICATION_CREDENTIALS
+            integration_config.AUTH_CREDENTIALS_PATH
         )
         
         if not os.path.exists(cred_path):
             raise FileNotFoundError(
                 f"Firebase credentials file not found at {cred_path}. "
-                "Please ensure the file exists and GOOGLE_APPLICATION_CREDENTIALS "
+                "Please ensure the file exists and AUTH_CREDENTIALS_PATH "
                 "in .env.integration points to the correct location."
             )
             
@@ -108,7 +108,7 @@ async def cleanup_test_files(integration_config):
         # Get absolute path to credentials file
         cred_path = os.path.join(
             os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-            integration_config.GOOGLE_APPLICATION_CREDENTIALS
+            integration_config.STORAGE_CREDENTIALS_PATH
         )
         
         # Initialize storage client with credentials
@@ -118,9 +118,9 @@ async def cleanup_test_files(integration_config):
         )
         storage_client = storage.Client(
             credentials=credentials,
-            project=integration_config.GOOGLE_CLOUD_PROJECT
+            project=integration_config.STORAGE_PROJECT_ID
         )
-        bucket = storage_client.bucket(integration_config.GCS_BUCKET_NAME)
+        bucket = storage_client.bucket(integration_config.STORAGE_BUCKET_NAME)
         
         for path in test_files:
             try:
