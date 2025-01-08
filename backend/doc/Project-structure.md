@@ -1,5 +1,44 @@
 # Project Structure
 
+## Core Services
+
+### 1. Authentication Service (✅ Completed)
+- Interface: `backend/services/interfaces/auth.py`
+- Implementation: `backend/services/implementations/auth/firebase_auth.py`
+- Features:
+  - User creation and management
+  - Token verification
+  - Error handling
+- Tests:
+  - Integration tests with Firebase Auth
+  - Password validation
+  - Token lifecycle management
+
+### 2. Storage Service (✅ Completed)
+- Interface: `backend/services/interfaces/storage.py`
+- Implementation: `backend/services/implementations/storage/gcs.py`
+- Features:
+  - File upload with signed URLs
+  - File deletion
+  - Error handling
+- Tests:
+  - Integration tests with Google Cloud Storage
+  - File lifecycle management
+  - Permission handling
+
+### 3. Database Service (✅ Completed)
+- Interface: `backend/services/interfaces/database.py`
+- Implementation: `backend/services/implementations/database/mongodb.py`
+- Features:
+  - CRUD operations
+  - Collection management
+  - Error handling
+- Tests:
+  - Integration tests with MongoDB
+  - Data lifecycle management
+
+## Project Layout
+
 ## Directory Layout
 backend/
 ├── __init__.py                # Makes the backend directory a Python package

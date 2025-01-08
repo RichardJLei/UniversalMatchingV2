@@ -5,6 +5,9 @@ from backend.config.config import Config
 import firebase_admin
 from firebase_admin import auth
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from google.cloud import storage
+from google.oauth2 import service_account
+import os
 
 class IntegrationConfig(BaseSettings):
     """Integration test specific configuration"""
@@ -26,23 +29,13 @@ class IntegrationConfig(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env.integration",
         case_sensitive=True,
-        extra='allow'  # Allow extra fields
+        extra='allow'
     )
 
 @pytest.fixture(scope="session")
-def integration_config() -> Config:
+def integration_config() -> IntegrationConfig:
     """Provide integration test configuration"""
-    # Load from .env.integration
-    int_config = IntegrationConfig()
-    
-    return Config(
-        DATABASE_PROVIDER=int_config.DATABASE_PROVIDER,
-        MONGODB_CONNECTION_STRING=int_config.MONGODB_CONNECTION_STRING,
-        MONGODB_DATABASE=int_config.MONGODB_DATABASE,
-        AUTH_PROVIDER=int_config.AUTH_PROVIDER,
-        FIREBASE_PROJECT_ID=int_config.FIREBASE_PROJECT_ID,
-        GOOGLE_APPLICATION_CREDENTIALS=int_config.GOOGLE_APPLICATION_CREDENTIALS
-    )
+    return IntegrationConfig()
 
 @pytest.fixture(scope="session")
 def firebase_app(integration_config):
@@ -102,3 +95,36 @@ async def mongodb_client(integration_config) -> AsyncGenerator:
 async def mongodb_database(mongodb_client, integration_config):
     """Provide the test database"""
     return mongodb_client[integration_config.MONGODB_DATABASE] 
+
+@pytest.fixture(scope="function")
+async def cleanup_test_files(integration_config):
+    """Clean up test files after tests"""
+    test_files = []
+    
+    yield test_files
+    
+    # Cleanup
+    if test_files:
+        # Get absolute path to credentials file
+        cred_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+            integration_config.GOOGLE_APPLICATION_CREDENTIALS
+        )
+        
+        # Initialize storage client with credentials
+        credentials = service_account.Credentials.from_service_account_file(
+            cred_path,
+            scopes=["https://www.googleapis.com/auth/cloud-platform"]
+        )
+        storage_client = storage.Client(
+            credentials=credentials,
+            project=integration_config.GOOGLE_CLOUD_PROJECT
+        )
+        bucket = storage_client.bucket(integration_config.GCS_BUCKET_NAME)
+        
+        for path in test_files:
+            try:
+                blob = bucket.blob(path)
+                blob.delete()
+            except Exception:
+                pass 
