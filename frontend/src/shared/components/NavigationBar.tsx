@@ -4,7 +4,7 @@ import { ThemeToggle } from './ThemeToggle'
 
 const NavigationBar: FC = () => {
   const navItems = [
-    { label: 'Received Files', href: '/files' },
+    { label: 'File Management', href: '/files' },
     { label: 'Parse Files', href: '/parser' },
     { label: 'Compare Files', href: '/comparison' },
     { label: 'User Management', href: '/users' }
