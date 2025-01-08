@@ -1,18 +1,23 @@
 import { FC } from 'react'
+import { useAuth } from '@/shared/contexts/AuthContext'
+import { Navigate } from 'react-router-dom'
 
 const HomePage: FC = () => {
-  // TODO: Replace with actual user data from auth context
-  const mockUser = {
-    name: "John Doe",
-    email: "john@example.com",
-    lastLogin: new Date().toLocaleString()
+  const { user, isLoading } = useAuth()
+
+  if (isLoading) {
+    return <div>Loading...</div>
+  }
+
+  if (!user) {
+    return <Navigate to="/files" replace />
   }
 
   return (
     <div className="space-y-6">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Welcome back, {mockUser.name}!
+          Welcome back, {user.name || 'User'}!
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
           We're glad to see you again.
@@ -26,11 +31,11 @@ const HomePage: FC = () => {
         <div className="space-y-2">
           <div className="flex items-center space-x-2">
             <span className="text-gray-500 dark:text-gray-400">Email:</span>
-            <span className="text-gray-900 dark:text-white">{mockUser.email}</span>
+            <span className="text-gray-900 dark:text-white">{user.email}</span>
           </div>
           <div className="flex items-center space-x-2">
             <span className="text-gray-500 dark:text-gray-400">Last Login:</span>
-            <span className="text-gray-900 dark:text-white">{mockUser.lastLogin}</span>
+            <span className="text-gray-900 dark:text-white">{user.lastLogin.toLocaleString()}</span>
           </div>
         </div>
       </div>
