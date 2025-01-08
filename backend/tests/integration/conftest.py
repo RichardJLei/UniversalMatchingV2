@@ -1,17 +1,86 @@
 import pytest
 import motor.motor_asyncio
-from typing import AsyncGenerator
+from typing import AsyncGenerator, List
 from backend.config.config import Config
+import firebase_admin
+from firebase_admin import auth
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+class IntegrationConfig(BaseSettings):
+    """Integration test specific configuration"""
+    # Database settings
+    DATABASE_PROVIDER: str
+    MONGODB_CONNECTION_STRING: str
+    MONGODB_DATABASE: str
+    
+    # Firebase settings
+    AUTH_PROVIDER: str
+    FIREBASE_PROJECT_ID: str
+    GOOGLE_APPLICATION_CREDENTIALS: str
+
+    # Storage settings
+    STORAGE_PROVIDER: str
+    GCS_BUCKET_NAME: str
+    GOOGLE_CLOUD_PROJECT: str
+
+    model_config = SettingsConfigDict(
+        env_file=".env.integration",
+        case_sensitive=True,
+        extra='allow'  # Allow extra fields
+    )
 
 @pytest.fixture(scope="session")
 def integration_config() -> Config:
     """Provide integration test configuration"""
-    # This will read from .env.integration
+    # Load from .env.integration
+    int_config = IntegrationConfig()
+    
     return Config(
-        DATABASE_PROVIDER="mongodb",
-        MONGODB_CONNECTION_STRING="mongodb://localhost:27017",
-        MONGODB_DATABASE="universal_matching_db"  # Match .env.integration
+        DATABASE_PROVIDER=int_config.DATABASE_PROVIDER,
+        MONGODB_CONNECTION_STRING=int_config.MONGODB_CONNECTION_STRING,
+        MONGODB_DATABASE=int_config.MONGODB_DATABASE,
+        AUTH_PROVIDER=int_config.AUTH_PROVIDER,
+        FIREBASE_PROJECT_ID=int_config.FIREBASE_PROJECT_ID,
+        GOOGLE_APPLICATION_CREDENTIALS=int_config.GOOGLE_APPLICATION_CREDENTIALS
     )
+
+@pytest.fixture(scope="session")
+def firebase_app(integration_config):
+    """Initialize Firebase Admin SDK"""
+    try:
+        return firebase_admin.get_app()
+    except ValueError:
+        # Get absolute path to credentials file
+        import os
+        cred_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+            integration_config.GOOGLE_APPLICATION_CREDENTIALS
+        )
+        
+        if not os.path.exists(cred_path):
+            raise FileNotFoundError(
+                f"Firebase credentials file not found at {cred_path}. "
+                "Please ensure the file exists and GOOGLE_APPLICATION_CREDENTIALS "
+                "in .env.integration points to the correct location."
+            )
+            
+        cred = firebase_admin.credentials.Certificate(cred_path)
+        return firebase_admin.initialize_app(cred)
+
+@pytest.fixture
+async def cleanup_test_users():
+    """Fixture to clean up test users after tests"""
+    test_user_emails: List[str] = []
+    
+    yield test_user_emails
+    
+    # Cleanup test users
+    for email in test_user_emails:
+        try:
+            user = auth.get_user_by_email(email)
+            auth.delete_user(user.uid)
+        except auth.UserNotFoundError:
+            pass
 
 @pytest.fixture
 async def mongodb_client(integration_config) -> AsyncGenerator:
