@@ -1,6 +1,6 @@
 # Project Structure
 
-## Core Services
+## Backend Services
 
 ### 1. Authentication Service (✅ Completed)
 - Interface: `backend/services/interfaces/auth.py`
@@ -9,10 +9,6 @@
   - User creation and management
   - Token verification
   - Error handling
-- Tests:
-  - Integration tests with Firebase Auth
-  - Password validation
-  - Token lifecycle management
 
 ### 2. Storage Service (✅ Completed)
 - Interface: `backend/services/interfaces/storage.py`
@@ -22,10 +18,6 @@
   - File deletion
   - Error handling
   - Permission management
-- Tests:
-  - Integration tests with Google Cloud Storage
-  - File lifecycle management
-  - Permission handling
 
 ### 3. Database Service (✅ Completed)
 - Interface: `backend/services/interfaces/database.py`
@@ -34,65 +26,87 @@
   - CRUD operations
   - Collection management
   - Error handling
-- Tests:
-  - Integration tests with MongoDB
-  - Data lifecycle management
+
+## Frontend Structure
+
+### 1. Core Components (✅ Completed)
+- Layout: `frontend/src/shared/layouts/MainLayout.tsx`
+- Navigation: `frontend/src/shared/components/NavigationBar.tsx`
+- Theme: 
+  - Toggle: `frontend/src/shared/components/ThemeToggle.tsx`
+  - Context: `frontend/src/shared/contexts/ThemeContext.tsx`
+
+### 2. Feature Modules
+- Files Management: `frontend/src/apps/files/*`
+- Parser: `frontend/src/apps/parser/*`
+- Comparison: `frontend/src/apps/comparison/*`
+- User Management: `frontend/src/apps/users/*`
 
 ## Project Layout
 
 ## Directory Layout
-backend/
-├── __init__.py                # Makes the backend directory a Python package
-├── apps/                      # Application-specific code
-│   └── app1/                  # First application module
-│       └── services/          # Application-specific services
-│           └── file_service.py # Handles file operations for app1
-├── config/                    # Configuration management
-│   └── config.py             # Central configuration using Pydantic settings
-├── services/                  # Core services layer
-│   ├── __init__.py           # Makes services a package
-│   ├── factory.py            # Factory pattern for service instantiation
-│   ├── implementations/      # Concrete implementations of services
-│   │   ├── auth/            # Authentication implementations
-│   │   │   └── firebase_auth.py # Firebase authentication service
-│   │   ├── database/        # Database implementations
-│   │   │   └── mongodb.py   # MongoDB service implementation
-│   │   └── storage/         # Storage implementations
-│   │       ├── gcs.py       # Google Cloud Storage implementation
-│   │       └── s3.py        # AWS S3 storage implementation
-│   └── interfaces/          # Service interfaces/contracts
-│       ├── auth.py          # Authentication service interface
-│       ├── database.py      # Database service interface
-│       └── storage.py       # Storage service interface
-├── tests/                    # Test suite
-│   ├── __init__.py          # Makes tests a package
-│   ├── conftest.py          # Shared pytest fixtures
-│   ├── test_basic.py        # Basic functionality tests
-│   ├── test_factory.py      # Tests for service factory
-│   ├── integration/         # Integration tests with real services
-│   │   ├── __init__.py     # Makes integration tests a package
-│   │   ├── conftest.py     # Integration-specific test fixtures
-│   │   ├── test_mongodb.py # MongoDB integration tests
-│   │   ├── test_storage_gcs.py # GCS integration tests
-│   │   ├── test_storage_s3.py # S3 integration tests
-│   │   └── test_firebase.py # Firebase integration tests
-│   ├── mocks/              # Mock implementations for testing
-│   │   ├── __init__.py    # Makes mocks a package
-│   │   └── mock_services.py # Mock service implementations
-│   └── services/           # Unit tests for services
-│       ├── __init__.py    # Makes service tests a package
-│       ├── test_auth_service.py # Auth service tests
-│       ├── test_database_service.py # Database service tests
-│       └── test_storage_service.py # Storage service tests
-├── doc/                     # Project documentation
-│   ├── Project-structure.md # This file - project structure documentation
-│   ├── Project-style.md    # Coding style guidelines
-│   └── Project-updates.md  # Project update logs
-├── .env                    # Environment variables for development
-├── .env.integration        # Environment variables for integration testing
-├── pytest.ini             # Pytest configuration and test markers
-├── requirements.txt       # Project dependencies
-└── requirements-test.txt  # Testing dependencies
+roject/
+├── backend/ # Backend Python application
+│ ├── init.py # Makes backend a Python package
+│ ├── apps/ # Application-specific code
+│ │ └── app1/ # First application module
+│ │ └── services/ # App-specific services
+│ ├── config/ # Configuration management
+│ │ ├── init.py # Makes config a package
+│ │ ├── config.py # Central configuration using Pydantic
+│ │ └── .json # Credential files (gitignored)
+│ ├── services/ # Core services layer
+│ │ ├── init.py # Makes services a package
+│ │ ├── factory.py # Service factory with dependency injection
+│ │ ├── interfaces/ # Service interfaces/contracts
+│ │ │ ├── auth.py # Authentication interface
+│ │ │ ├── database.py # Database interface
+│ │ │ └── storage.py # Storage interface
+│ │ └── implementations/ # Concrete implementations
+│ │ ├── auth/ # Auth implementations
+│ │ ├── database/ # Database implementations
+│ │ └── storage/ # Storage implementations
+│ ├── tests/ # Test suite
+│ │ ├── init.py # Makes tests a package
+│ │ ├── conftest.py # Shared test fixtures
+│ │ ├── integration/ # Integration tests
+│ │ └── unit/ # Unit tests
+│ └── doc/ # Documentation
+└── frontend/ # Frontend React application
+├── src/ # Source code directory
+│ ├── apps/ # Feature-specific modules
+│ │ ├── files/ # File management feature
+│ │ │ ├── components/ # Feature-specific components
+│ │ │ └── pages/ # File management pages
+│ │ │ └── FileListPage.tsx # File list view
+│ │ ├── parser/ # File parsing feature
+│ │ │ └── pages/
+│ │ │ └── ParserPage.tsx # Parser interface
+│ │ ├── comparison/ # File comparison feature
+│ │ │ └── pages/
+│ │ │ └── ComparisonPage.tsx # Comparison interface
+│ │ └── users/ # User management feature
+│ │ └── pages/
+│ │ └── UserManagementPage.tsx # User management interface
+│ ├── shared/ # Shared components and utilities
+│ │ ├── components/ # Reusable UI components
+│ │ │ ├── AppRouter.tsx # Application routing
+│ │ │ ├── NavigationBar.tsx # Main navigation
+│ │ │ └── ThemeToggle.tsx # Theme switcher
+│ │ ├── contexts/ # React contexts
+│ │ │ └── ThemeContext.tsx # Theme management
+│ │ ├── layouts/ # Layout components
+│ │ │ └── MainLayout.tsx # Main app layout
+│ │ └── utils/ # Utility functions
+│ ├── App.tsx # Root component
+│ ├── main.tsx # Application entry point
+│ └── index.css # Global styles
+├── public/ # Static assets
+├── index.html # HTML entry point
+├── package.json # Dependencies and scripts
+├── tsconfig.json # TypeScript configuration
+├── tailwind.config.js # Tailwind CSS configuration
+└── vite.config.ts # Vite build configuration
 
 ## Key Components Explanation
 
