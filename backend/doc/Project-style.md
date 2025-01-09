@@ -1,56 +1,40 @@
-Purpose: Outlines naming conventions, folder placements, coding standards, and rules for how code must be structured.
+DRY (Don't Repeat Yourself)
+    Refer to ./Project-file-structure.md for existing services and modules.
+    Reuse existing services/modules:
+        Reuse logic from existing services or modules whenever possible.
+    Build new services/modules:
+        When the required logic is new.
+        When coordination with multiple existing modules is necessary.
+    Use abstractions:
+        Introduce shared abstractions for reusable business logic.
 
-Naming Conventions:
-    Use PascalCase for React components (e.g., MyComponent.tsx).
-    Use docstrings for every function (describing its purpose and parameters).
+Consistent Interface
+    Follow established patterns for interfaces in services and modules.
+    Ensure that changes to a service are isolated and do not affect unrelated modules.
 
-Backend Folder Placement:
-    Domain-Specific Features (e.g., file mgmt, parsing, comparison) go in \backend\apps.
-    Vendor-Specific/External Integrations (e.g., GCS, DB) go in \backend\services.
-    Centralized Auth & Role-Based Access goes in \backend\shared\middleware.
-    Utility Functions (ID generators, etc.) in \backend\shared\utils.
-    Configuration Handling (config.py) in \backend\config.
-    Backend Environment Variables in \backend\.env.
+Naming Conventions
+    React Components: Use PascalCase (e.g., MyComponent.tsx).
+    Functions: Include docstrings describing their purpose and parameters.
+    REST API Endpoints:
+        Use kebab-case (e.g., /file-management/parse).
+        Prefix with version numbers (e.g., /api/v1/).
+    Variables:
+        Use camelCase for JavaScript/React variables.
+        Use snake_case for Python variables.
 
-Frontend Folder Placement:
-    Feature-Specific UI in \frontend\apps.
-    Layout Components (header, footer, sidebars) in \frontend\shared\layouts.
-    Reusable UI Elements (buttons, modals) in \frontend\shared\components.
-    React Context for global state in \frontend\shared\contexts.
-    Utilities in \frontend\shared\utils.
-    Page-Level Components in \frontend\pages.
-    Frontend Environment Variables in \frontend\.env.
+Backend Folder Placement
+    Domain-Specific Features: Place in \backend\apps.
+    Vendor-Specific Integrations: Place in \backend\services.
+    Shared Middleware: Place centralized auth and role-based access logic in \backend\shared\middleware.
+    Utility Functions: Place shared utilities (e.g., ID generators) in \backend\shared\utils.
+    Abstractions: Place reusable business logic in \backend\shared\abstractions.
+    Configuration: Place config.py in \backend\config.
 
-## Environment Configuration
-
-### Environment Files
-- `.env.template` - Template with all required parameters
-- `.env` - Development environment settings
-- `.env.integration` - Integration test settings
-
-### Usage
-1. Copy `.env.template` to create new environment files
-2. Never commit `.env` or `.env.integration`
-3. Keep parameters consistent between environments
-4. Use different values for development vs testing
-
-### Parameter Naming
-- Use UPPERCASE for all environment variables
-- Use underscores for word separation
-- Group related variables with common prefixes
-
-### Required Parameters
-Database:
-- DATABASE_PROVIDER: Service provider (e.g., mongodb)
-- MONGODB_CONNECTION_STRING: Connection URL
-- MONGODB_DATABASE: Database name
-
-Firebase:
-- AUTH_PROVIDER: Authentication provider (firebase)
-- FIREBASE_PROJECT_ID: Google project ID
-- GOOGLE_APPLICATION_CREDENTIALS: Path to credentials
-
-Storage:
-- STORAGE_PROVIDER: Storage provider (gcs, s3)
-- GCS_BUCKET_NAME: Storage bucket name
-- GOOGLE_CLOUD_PROJECT: Must match FIREBASE_PROJECT_ID
+Frontend Folder Placement
+    Feature-Specific UI: Place in \frontend\apps.
+    Reusable Components: Place common UI elements in \frontend\shared\components.
+    Layouts: Place header, footer, and sidebar components in \frontend\shared\layouts.
+    React Context: Place global state management in \frontend\shared\contexts.
+    Utilities: Place shared frontend utilities in \frontend\shared\utils.
+    
+Centralize reusable mock objects in tests/mocks/.
