@@ -4,20 +4,23 @@ from pydantic import validator
 
 class Config(BaseSettings):
     # Database settings
-    DATABASE_PROVIDER: str
-    MONGODB_CONNECTION_STRING: str
-    MONGODB_DATABASE: str
+    DATABASE_PROVIDER: str = "mongodb"
+    DATABASE_CONNECTION_STRING: str
+    DATABASE_NAME: str
     
     # Firebase Auth settings
-    AUTH_PROVIDER: str
+    AUTH_PROVIDER: str = "firebase"
     AUTH_PROJECT_ID: str
     AUTH_CREDENTIALS_PATH: str
     
     # Storage settings
-    STORAGE_PROVIDER: str
+    STORAGE_PROVIDER: str = "gcs"
     STORAGE_PROJECT_ID: str
     STORAGE_CREDENTIALS_PATH: str
     STORAGE_BUCKET_NAME: str
+
+    # JWT Settings
+    JWT_SECRET_KEY: str
 
     @validator('STORAGE_PROJECT_ID')
     def validate_project_consistency(cls, v, values):
@@ -67,3 +70,11 @@ class Config(BaseSettings):
         case_sensitive = True
         validate_assignment = True
         extra = "forbid" 
+
+    @property
+    def MONGODB_CONNECTION_STRING(self) -> str:
+        return self.DATABASE_CONNECTION_STRING
+
+    @property
+    def MONGODB_DATABASE(self) -> str:
+        return self.DATABASE_NAME 

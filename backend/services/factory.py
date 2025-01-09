@@ -5,9 +5,12 @@ from .interfaces.auth import AuthService
 from .implementations.storage.gcs import GCSStorageService
 from .implementations.database.mongodb import MongoDBService
 from .implementations.auth.firebase_auth import FirebaseAuthService
-from ..config.config import Config
+from config.config import Config
 
-def get_storage_service(config: Config) -> StorageService:
+# Create config instance
+config = Config()
+
+def get_storage_service() -> StorageService:
     """Factory method to get the configured storage service"""
     if config.STORAGE_PROVIDER == "gcs":
         return GCSStorageService(

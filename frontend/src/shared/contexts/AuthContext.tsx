@@ -39,19 +39,24 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     try {
       const user = await authService.signInWithGoogle()
       setUser(user)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error signing in:', error)
-      throw error
+      // Don't throw if user cancelled
+      if (error.message !== 'Sign in cancelled by user') {
+        throw error
+      }
     }
   }
 
   const signOut = async () => {
     try {
-      await authService.signOut()
-      setUser(null)
+      await authService.signOut();
+      setUser(null);
+      // Optionally clear other state/storage
     } catch (error) {
-      console.error('Error signing out:', error)
-      throw error
+      console.error('Error signing out:', error);
+      // Still clear local state even if sign-out fails
+      setUser(null);
     }
   }
 

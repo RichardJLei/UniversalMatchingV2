@@ -1,22 +1,34 @@
 from typing import Optional, Dict
 import firebase_admin
-from firebase_admin import auth, exceptions
+from firebase_admin import auth, credentials
 from ...interfaces.auth import AuthService
+from config.config import Config
 
 class FirebaseAuthService(AuthService):
     def __init__(self):
-        if not firebase_admin._apps:
-            firebase_admin.initialize_app()
-
-    async def verify_token(self, token: str) -> Optional[Dict]:
+        """Initialize Firebase Admin SDK"""
         try:
+            firebase_admin.get_app()
+        except ValueError:
+            config = Config()
+            cred = credentials.Certificate(config.AUTH_CREDENTIALS_PATH)
+            firebase_admin.initialize_app(cred)
+
+    def verify_token(self, token: str) -> Optional[Dict]:
+        """Verify Firebase ID token"""
+        try:
+            if not token:
+                return None
+                
             decoded_token = auth.verify_id_token(token)
             return {
-                "user_id": decoded_token["uid"],
-                "email": decoded_token.get("email"),
-                "email_verified": decoded_token.get("email_verified", False)
+                'user_id': decoded_token['uid'],
+                'email': decoded_token.get('email'),
+                'name': decoded_token.get('name'),
+                'picture': decoded_token.get('picture')
             }
-        except (auth.InvalidIdTokenError, ValueError):
+        except Exception as e:
+            print(f"Token verification error: {str(e)}")
             return None
 
     async def create_user(self, email: str, password: str) -> Dict:
