@@ -9,58 +9,56 @@ import {
 } from 'firebase/auth'
 import { AuthService, User } from '../../interfaces/auth'
 
+// Initialize Firebase with environment variables
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
-}
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID
+};
 
 // Initialize Firebase only once
-let app;
-try {
-  app = initializeApp(firebaseConfig);
-} catch (error) {
-  // Ignore the duplicate app initialization error
-  if (!/already exists/.test(error.message)) {
-    console.error('Firebase initialization error', error);
-  }
-}
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 
 export class FirebaseAuthService implements AuthService {
-  private auth;
-  private provider;
+  private provider = new GoogleAuthProvider();
 
-  constructor() {
-    this.auth = getAuth(app);
-    this.provider = new GoogleAuthProvider();
-  }
+  private async validateWithBackend(firebaseUser: FirebaseUser): Promise<void> {
+    const token = await firebaseUser.getIdToken();
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/validate`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      credentials: 'include'
+    });
 
-  private convertUser(firebaseUser: FirebaseUser): User {
-    return {
-      id: firebaseUser.uid,
-      email: firebaseUser.email!,
-      name: firebaseUser.displayName,
-      photoURL: firebaseUser.photoURL,
-      lastLogin: new Date(firebaseUser.metadata.lastSignInTime!)
+    if (!response.ok) {
+      throw new Error('Failed to validate with backend');
     }
   }
 
   async signInWithGoogle(): Promise<User> {
     try {
-      const result = await signInWithPopup(this.auth, this.provider)
-      return this.convertUser(result.user)
+      const result = await signInWithPopup(auth, this.provider);
+      await this.validateWithBackend(result.user);
+      
+      return {
+        id: result.user.uid,
+        email: result.user.email!,
+        name: result.user.displayName,
+        photoURL: result.user.photoURL,
+        lastLogin: new Date(result.user.metadata.lastSignInTime!)
+      };
     } catch (error) {
-      console.error('Error signing in with Google:', error)
-      throw new Error('Failed to sign in with Google')
+      console.error('Error signing in with Google:', error);
+      throw new Error('Failed to sign in with Google');
     }
   }
 
   async signOut(): Promise<void> {
     try {
-      await firebaseSignOut(this.auth)
+      await firebaseSignOut(auth)
     } catch (error) {
       console.error('Error signing out:', error)
       throw new Error('Failed to sign out')
@@ -69,8 +67,14 @@ export class FirebaseAuthService implements AuthService {
 
   async getCurrentUser(): Promise<User | null> {
     return new Promise((resolve) => {
-      onAuthStateChanged(this.auth, (user) => {
-        resolve(user ? this.convertUser(user) : null)
+      onAuthStateChanged(auth, (user) => {
+        resolve(user ? {
+          id: user.uid,
+          email: user.email!,
+          name: user.displayName,
+          photoURL: user.photoURL,
+          lastLogin: new Date(user.metadata.lastSignInTime!)
+        } : null)
       })
     })
   }
