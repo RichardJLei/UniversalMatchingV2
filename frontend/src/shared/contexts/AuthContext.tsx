@@ -37,14 +37,13 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
 
   const signIn = async () => {
     try {
-      const user = await authService.signInWithGoogle()
-      setUser(user)
-    } catch (error: any) {
-      console.error('Error signing in:', error)
-      // Don't throw if user cancelled
-      if (error.message !== 'Sign in cancelled by user') {
-        throw error
+      const user = await authService.signInWithGoogle();
+      if (user) {  // Only set user if sign-in was successful
+        setUser(user);
       }
+    } catch (error: any) {
+      console.error('Error signing in:', error);
+      throw error;
     }
   }
 

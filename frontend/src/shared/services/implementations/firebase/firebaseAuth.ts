@@ -6,8 +6,8 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged,
   User as FirebaseUser,
-  browserSessionPersistence,
-  browserLocalPersistence
+  browserLocalPersistence,
+  setPersistence
 } from 'firebase/auth'
 import { AuthService, User } from '../../interfaces/auth'
 
@@ -22,8 +22,20 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
+// Set persistence once at startup
+setPersistence(auth, browserLocalPersistence)
+  .catch(error => console.error('Error setting persistence:', error));
+
 export class FirebaseAuthService implements AuthService {
-  private provider = new GoogleAuthProvider();
+  private provider: GoogleAuthProvider;
+
+  constructor() {
+    this.provider = new GoogleAuthProvider();
+    // Only set the essential parameter
+    this.provider.setCustomParameters({
+      prompt: 'select_account'
+    });
+  }
 
   private async validateWithBackend(firebaseUser: FirebaseUser): Promise<void> {
     try {
@@ -49,13 +61,8 @@ export class FirebaseAuthService implements AuthService {
     }
   }
 
-  async signInWithGoogle(): Promise<User> {
+  async signInWithGoogle(): Promise<User | null> {
     try {
-      // Configure Google provider to always show account picker
-      this.provider.setCustomParameters({
-        prompt: 'select_account'
-      });
-      
       const result = await signInWithPopup(auth, this.provider);
       
       try {
@@ -73,39 +80,31 @@ export class FirebaseAuthService implements AuthService {
       };
     } catch (error: any) {
       console.error('Error signing in with Google:', error);
-      if (error.code === 'auth/popup-closed-by-user') {
-        throw new Error('Sign in cancelled by user');
+      
+      if (error.code === 'auth/popup-closed-by-user' || 
+          error.code === 'auth/cancelled-popup-request') {
+        return null;
       }
-      throw new Error(error.message || 'Failed to sign in with Google');
+      
+      throw error;
     }
   }
 
   async signOut(): Promise<void> {
     try {
-      // First clear backend session
+      // Clear backend session
       await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include'
       });
       
-      // Then sign out from Firebase
+      // Sign out from Firebase
       await firebaseSignOut(auth);
       
-      // Clear any local storage if needed
+      // Clear local storage
       localStorage.removeItem('user');
-      
-      // Force clear all Google sign-in state
-      const googleLogoutWindow = window.open(
-        'https://accounts.google.com/logout',
-        '_blank',
-        'width=1,height=1'
-      );
-      if (googleLogoutWindow) {
-        setTimeout(() => googleLogoutWindow.close(), 2000);
-      }
     } catch (error) {
       console.error('Error signing out:', error);
-      // Still try to sign out from Firebase even if backend fails
       await firebaseSignOut(auth);
     }
   }
