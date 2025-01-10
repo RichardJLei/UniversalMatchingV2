@@ -10,9 +10,20 @@ auth_bp = Blueprint('auth', __name__)
 auth_service = get_auth_service()
 db_service = get_database_service()
 
-@auth_bp.route('/api/auth/validate', methods=['POST'])
+@auth_bp.route('/api/auth/validate', methods=['POST', 'OPTIONS'])
 async def validate_token():
     """Validate Firebase token and create session"""
+    # Handle preflight request
+    if request.method == 'OPTIONS':
+        response = jsonify({'message': 'OK'})
+        # Add all required CORS headers for preflight
+        origin = request.headers.get('Origin')
+        response.headers['Access-Control-Allow-Origin'] = origin
+        response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
+        return response
+
     try:
         # Get token from Authorization header
         auth_header = request.headers.get('Authorization', '')
@@ -24,9 +35,8 @@ async def validate_token():
             return jsonify({'error': 'Invalid token format'}), 401
 
         # Add a small delay to handle clock skew
-        time.sleep(1)  # Wait 1 second before verifying token
+        time.sleep(1)
 
-        # Verify token with Firebase Admin SDK directly
         try:
             decoded_token = firebase_auth.verify_id_token(
                 token,
@@ -40,7 +50,6 @@ async def validate_token():
             }
         except firebase_auth.InvalidIdTokenError as e:
             if "Token used too early" in str(e):
-                # Add another small delay and retry once
                 time.sleep(1)
                 try:
                     decoded_token = firebase_auth.verify_id_token(token, check_revoked=True)
@@ -92,6 +101,11 @@ async def validate_token():
             })
             set_access_cookies(response, access_token)
             
+            # Set SameSite attribute for cookies in production
+            is_production = os.environ.get('FLASK_ENV') == 'production'
+            if is_production and 'Set-Cookie' in response.headers:
+                response.headers['Set-Cookie'] = response.headers['Set-Cookie'].split(';')[0] + '; SameSite=None; Secure'
+            
             return response
 
         except Exception as db_error:
@@ -109,8 +123,12 @@ def logout():
     # Handle preflight request
     if request.method == 'OPTIONS':
         response = jsonify({'message': 'OK'})
+        # Add all required CORS headers for preflight
+        origin = request.headers.get('Origin')
+        response.headers['Access-Control-Allow-Origin'] = origin
         response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
         response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
         return response
 
     try:
