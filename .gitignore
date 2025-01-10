@@ -35,6 +35,5 @@ yarn-error.log*
 backend/venv/
 __pycache__/
 *.pyc
-__pycache__
 *.log
 backend/config/*.json

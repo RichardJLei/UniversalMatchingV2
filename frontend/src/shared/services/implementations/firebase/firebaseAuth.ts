@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app'
+import { initializeApp, getApps, deleteApp } from 'firebase/app'
 import { 
   getAuth, 
   signInWithPopup, 
@@ -11,16 +11,29 @@ import {
 } from 'firebase/auth'
 import { AuthService, User } from '../../interfaces/auth'
 
+// Clear any existing Firebase apps
+getApps().forEach(app => {
+  deleteApp(app);
+});
+
 // Initialize Firebase with environment variables
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase only once
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+
+// Force auth settings
+auth.useDeviceLanguage();
+auth.settings.appVerificationDisabledForTesting = false;
 
 // Set persistence once at startup
 setPersistence(auth, browserLocalPersistence)
@@ -31,9 +44,9 @@ export class FirebaseAuthService implements AuthService {
 
   constructor() {
     this.provider = new GoogleAuthProvider();
-    // Only set the essential parameter
+    // Only set supported parameters
     this.provider.setCustomParameters({
-      prompt: 'select_account'
+      prompt: 'select_account',
     });
   }
 
