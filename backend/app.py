@@ -2,22 +2,32 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
 
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from datetime import timedelta
 from dotenv import load_dotenv
 import os
+import logging
+from google.cloud import error_reporting
 
 # Load environment variables
 load_dotenv()
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def create_app():
     """Application factory function"""
     app = Flask(__name__)
     
+    # Initialize error reporting
+    error_client = error_reporting.Client()
+    
     # Determine environment
     is_production = os.environ.get('FLASK_ENV') == 'production'
+    logger.info(f"Environment: {'production' if is_production else 'development'}")
     
     # Configure JWT
     app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'dev-secret-key')
@@ -50,23 +60,51 @@ def create_app():
     @app.after_request
     def after_request(response):
         origin = request.headers.get('Origin')
+        logger.info({
+            "message": "Request details",
+            "origin": origin,
+            "method": request.method,
+            "headers": dict(request.headers)
+        })
+        
         if origin in origins:
+            logger.info(f"Origin {origin} is allowed")
             response.headers['Access-Control-Allow-Origin'] = origin
             response.headers['Access-Control-Allow-Credentials'] = 'true'
             response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
             response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
             response.headers['Access-Control-Expose-Headers'] = 'Set-Cookie'
             
-            # Add SameSite attribute for cookies in production
             if is_production and 'Set-Cookie' in response.headers:
                 response.headers['Set-Cookie'] = response.headers['Set-Cookie'].split(';')[0] + '; SameSite=None; Secure'
+                
+            print("Response Headers:", dict(response.headers))
+        else:
+            logger.warning({
+                "message": "Origin not allowed",
+                "origin": origin,
+                "allowed_origins": origins
+            })
+            
         return response
+
+    @app.errorhandler(Exception)
+    def handle_error(error):
+        error_client.report_exception()
+        logger.error(f"Unhandled error: {str(error)}", exc_info=True)
+        return jsonify({'error': str(error)}), 500
 
     jwt = JWTManager(app)
 
     # Register blueprints
     from apps.auth.routes import auth_bp
     app.register_blueprint(auth_bp)
+
+    # Print environment variables (excluding sensitive ones)
+    print("\n=== Environment Variables ===")
+    for key, value in os.environ.items():
+        if not any(sensitive in key.lower() for sensitive in ['key', 'secret', 'password', 'token']):
+            print(f"{key}: {value}")
 
     return app
 

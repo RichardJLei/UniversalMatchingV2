@@ -13,25 +13,38 @@ db_service = get_database_service()
 @auth_bp.route('/api/auth/validate', methods=['POST', 'OPTIONS'])
 async def validate_token():
     """Validate Firebase token and create session"""
+    print(f"\n=== Validate Token Request ===")
+    print(f"Method: {request.method}")
+    print(f"Headers: {dict(request.headers)}")
+    print(f"Origin: {request.headers.get('Origin')}")
+    
     # Handle preflight request
     if request.method == 'OPTIONS':
+        print("Handling OPTIONS request")
         response = jsonify({'message': 'OK'})
-        # Add all required CORS headers for preflight
         origin = request.headers.get('Origin')
+        
+        print(f"Setting CORS headers for origin: {origin}")
         response.headers['Access-Control-Allow-Origin'] = origin
         response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
         response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
         response.headers['Access-Control-Allow-Credentials'] = 'true'
+        
+        print("Response Headers:", dict(response.headers))
         return response
 
     try:
         # Get token from Authorization header
         auth_header = request.headers.get('Authorization', '')
+        print(f"Auth header: {auth_header[:20]}...")  # Print first 20 chars for security
+        
         if not auth_header.startswith('Bearer '):
+            print("No Bearer token found")
             return jsonify({'error': 'No token provided'}), 401
             
         token = auth_header.split('Bearer ')[1]
         if not token:
+            print("Empty token after Bearer")
             return jsonify({'error': 'Invalid token format'}), 401
 
         # Add a small delay to handle clock skew
@@ -115,6 +128,8 @@ async def validate_token():
 
     except Exception as e:
         print(f"Token validation error: {str(e)}")
+        print(f"Error type: {type(e)}")
+        print(f"Error traceback:", exc_info=True)
         return jsonify({'error': str(e)}), 401
 
 @auth_bp.route('/api/auth/logout', methods=['POST', 'OPTIONS'])
