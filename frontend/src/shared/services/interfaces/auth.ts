@@ -7,7 +7,7 @@ export interface User {
 }
 
 export interface AuthService {
-  signInWithGoogle(): Promise<User>
+  signInWithGoogle(): Promise<User | null>
   signOut(): Promise<void>
   getCurrentUser(): Promise<User | null>
 } 

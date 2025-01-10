@@ -26,7 +26,12 @@ def create_app():
     # Enable CORS with cookie support
     CORS(app, 
          resources={r"/api/*": {
-             "origins": ["http://localhost:5173"],
+             "origins": [
+                 "http://localhost:5173",
+                 "https://universalmatchingv2.web.app",
+                 "https://universalmatchingv2.firebaseapp.com",
+                 "https://backend-universalmatchingv2-uc.a.run.app"
+             ],
              "supports_credentials": True,
              "allow_headers": ["Content-Type", "Authorization"],
              "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
