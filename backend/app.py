@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
 
-from flask import Flask
+from flask import Flask, request
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from datetime import timedelta
@@ -23,22 +23,16 @@ def create_app():
     app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'dev-secret-key')
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
     app.config['JWT_TOKEN_LOCATION'] = ['cookies']
-    app.config['JWT_COOKIE_SECURE'] = is_production  # True in production
-    app.config['JWT_COOKIE_CSRF_PROTECT'] = is_production  # True in production
+    app.config['JWT_COOKIE_SECURE'] = is_production
+    app.config['JWT_COOKIE_CSRF_PROTECT'] = is_production
     
     # Configure CORS based on environment
     origins = [
         "http://localhost:5173",  # Development frontend
         "https://universalmatchingv2.web.app",  # Production frontend
-        "https://universalmatchingv2.firebaseapp.com"  # Alternative production frontend
+        "https://universalmatchingv2.firebaseapp.com",  # Alternative production frontend
+        "https://backend-universalmatchingv2-uc.a.run.app"  # Cloud Run backend
     ]
-    
-    if is_production:
-        # In production, only allow the production domains
-        origins = [
-            "https://universalmatchingv2.web.app",
-            "https://universalmatchingv2.firebaseapp.com"
-        ]
     
     # Enable CORS with cookie support
     CORS(app, 
@@ -47,8 +41,21 @@ def create_app():
              "supports_credentials": True,
              "allow_headers": ["Content-Type", "Authorization"],
              "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-             "expose_headers": ["Set-Cookie"]
+             "expose_headers": ["Set-Cookie"],
+             "allow_credentials": True  # Important for cookies
          }})
+
+    # Add CORS headers to all responses
+    @app.after_request
+    def after_request(response):
+        origin = request.headers.get('Origin')
+        if origin in origins:
+            response.headers.add('Access-Control-Allow-Origin', origin)
+            response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+            response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+            response.headers.add('Access-Control-Allow-Credentials', 'true')
+            response.headers.add('Access-Control-Expose-Headers', 'Set-Cookie')
+        return response
 
     jwt = JWTManager(app)
 

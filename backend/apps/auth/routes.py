@@ -102,9 +102,20 @@ async def validate_token():
         print(f"Token validation error: {str(e)}")
         return jsonify({'error': str(e)}), 401
 
-@auth_bp.route('/api/auth/logout', methods=['POST'])
+@auth_bp.route('/api/auth/logout', methods=['POST', 'OPTIONS'])
 def logout():
     """Clear session cookies"""
-    response = jsonify({'message': 'Logged out successfully'})
-    unset_jwt_cookies(response)
-    return response 
+    # Handle preflight request
+    if request.method == 'OPTIONS':
+        response = jsonify({'message': 'OK'})
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        return response
+
+    try:
+        response = jsonify({'message': 'Logged out successfully'})
+        unset_jwt_cookies(response)
+        return response
+    except Exception as e:
+        print(f"Logout error: {str(e)}")
+        return jsonify({'error': 'Failed to logout'}), 500 
