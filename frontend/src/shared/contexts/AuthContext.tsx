@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, FC, ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { User, AuthService } from '../services/interfaces/auth'
 import { FirebaseAuthService } from '../services/implementations/firebase/firebaseAuth'
 
@@ -19,12 +20,14 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const authService: AuthService = new FirebaseAuthService()
+  const navigate = useNavigate()
 
   useEffect(() => {
     const initAuth = async () => {
       try {
         const currentUser = await authService.getCurrentUser()
         setUser(currentUser)
+        navigate('/home')
       } catch (error) {
         console.error('Error initializing auth:', error)
       } finally {
@@ -33,29 +36,29 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     }
 
     initAuth()
-  }, [])
+  }, [navigate])
 
   const signIn = async () => {
     try {
-      const user = await authService.signInWithGoogle();
-      if (user) {  // Only set user if sign-in was successful
-        setUser(user);
+      const user = await authService.signInWithGoogle()
+      if (user) {
+        setUser(user)
+        navigate('/home')
       }
     } catch (error: any) {
-      console.error('Error signing in:', error);
-      throw error;
+      console.error('Error signing in:', error)
+      throw error
     }
   }
 
   const signOut = async () => {
     try {
-      await authService.signOut();
-      setUser(null);
-      // Optionally clear other state/storage
+      await authService.signOut()
+      setUser(null)
+      navigate('/home')
     } catch (error) {
-      console.error('Error signing out:', error);
-      // Still clear local state even if sign-out fails
-      setUser(null);
+      console.error('Error signing out:', error)
+      setUser(null)
     }
   }
 

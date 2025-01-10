@@ -6,10 +6,12 @@ import { FileListPage } from '../../apps/files/pages/FileListPage'
 import { ParserPage } from '../../apps/parser/pages/ParserPage'
 import { ComparisonPage } from '../../apps/comparison/pages/ComparisonPage'
 import { UserManagementPage } from '../../apps/users/pages/UserManagementPage'
+import { AuthProvider } from '../contexts/AuthContext'
 
-const AppRouter: FC = () => {
+// Create a component that uses AuthProvider after Router is initialized
+const AuthenticatedApp: FC = () => {
   return (
-    <BrowserRouter>
+    <AuthProvider>
       <MainLayout>
         <Routes>
           <Route path="/home" element={<HomePage />} />
@@ -20,6 +22,14 @@ const AppRouter: FC = () => {
           <Route path="/" element={<Navigate to="/home" replace />} />
         </Routes>
       </MainLayout>
+    </AuthProvider>
+  )
+}
+
+const AppRouter: FC = () => {
+  return (
+    <BrowserRouter>
+      <AuthenticatedApp />
     </BrowserRouter>
   )
 }
