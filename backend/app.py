@@ -25,6 +25,7 @@ def create_app():
     app.config['JWT_TOKEN_LOCATION'] = ['cookies']
     app.config['JWT_COOKIE_SECURE'] = is_production
     app.config['JWT_COOKIE_CSRF_PROTECT'] = is_production
+    app.config['JWT_COOKIE_SAMESITE'] = 'None' if is_production else 'Lax'
     
     # Configure CORS based on environment
     origins = [
@@ -50,11 +51,15 @@ def create_app():
     def after_request(response):
         origin = request.headers.get('Origin')
         if origin in origins:
-            response.headers.add('Access-Control-Allow-Origin', origin)
-            response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-            response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-            response.headers.add('Access-Control-Allow-Credentials', 'true')
-            response.headers.add('Access-Control-Expose-Headers', 'Set-Cookie')
+            response.headers['Access-Control-Allow-Origin'] = origin
+            response.headers['Access-Control-Allow-Credentials'] = 'true'
+            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+            response.headers['Access-Control-Expose-Headers'] = 'Set-Cookie'
+            
+            # Add SameSite attribute for cookies in production
+            if is_production and 'Set-Cookie' in response.headers:
+                response.headers['Set-Cookie'] = response.headers['Set-Cookie'].split(';')[0] + '; SameSite=None; Secure'
         return response
 
     jwt = JWTManager(app)

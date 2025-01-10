@@ -4,6 +4,7 @@ from flask_jwt_extended import create_access_token, set_access_cookies, unset_jw
 from datetime import datetime, timedelta
 from firebase_admin import auth as firebase_auth
 import time
+import os
 
 auth_bp = Blueprint('auth', __name__)
 auth_service = get_auth_service()
@@ -108,13 +109,19 @@ def logout():
     # Handle preflight request
     if request.method == 'OPTIONS':
         response = jsonify({'message': 'OK'})
-        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
         return response
 
     try:
         response = jsonify({'message': 'Logged out successfully'})
         unset_jwt_cookies(response)
+        
+        # Set SameSite attribute for cookies
+        is_production = os.environ.get('FLASK_ENV') == 'production'
+        if is_production and 'Set-Cookie' in response.headers:
+            response.headers['Set-Cookie'] = response.headers['Set-Cookie'].split(';')[0] + '; SameSite=None; Secure'
+            
         return response
     except Exception as e:
         print(f"Logout error: {str(e)}")
