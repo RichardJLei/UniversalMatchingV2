@@ -1,7 +1,8 @@
-# Use Python 3.12 slim image
+# syntax=docker/dockerfile:1
+
 FROM python:3.12-slim
 
-# Accept build argument
+# Accept build argument for environment
 ARG FLASK_ENV=production
 
 # Set working directory
@@ -13,28 +14,36 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     netcat-traditional \
     && rm -rf /var/lib/apt/lists/*
 
+# Create necessary directories
+RUN mkdir -p /app/logs /secrets
+
 # Copy requirements files first for better caching
 COPY requirements.txt .
 
-# Install production dependencies and ensure gunicorn is installed
+# Install production dependencies
 RUN pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir gunicorn==21.2.0 && \
-    which gunicorn  # Print gunicorn location
+    pip install --no-cache-dir gunicorn==21.2.0
+
+# Copy environment files first (will be used based on FLASK_ENV)
+COPY .env* ./
 
 # Copy application code
 COPY . .
 
-# Set environment variables
-ENV PORT=8080
-ENV PYTHONUNBUFFERED=1
-ENV FLASK_ENV=${FLASK_ENV}
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONPATH=/app
-ENV FLASK_APP=app:app
-ENV PATH="/usr/local/bin:${PATH}"  # Ensure /usr/local/bin is in PATH
+# Set base environment variables
+ENV PORT=8080 \
+    PYTHONUNBUFFERED=1 \
+    FLASK_ENV=${FLASK_ENV} \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app \
+    FLASK_APP=app:app
 
-# Create necessary directories
-RUN mkdir -p /app/config /app/logs
+# Load environment variables from file based on FLASK_ENV
+RUN if [ "$FLASK_ENV" = "production" ]; then \
+    cp .env.production .env; \
+    else \
+    cp .env .env; \
+    fi
 
 # Set permissions
 RUN chmod -R 755 /app
@@ -42,9 +51,16 @@ RUN chmod -R 755 /app
 # Expose port
 EXPOSE 8080
 
-# Copy and set up startup script
-COPY scripts/startup.sh /startup.sh
-RUN chmod +x /startup.sh
-
-# Use the startup script as entrypoint
-ENTRYPOINT ["/startup.sh"] 
+# Run the application
+CMD exec gunicorn --bind :$PORT \
+    --workers 1 \
+    --threads 8 \
+    --timeout 0 \
+    --graceful-timeout 30 \
+    --keep-alive 2 \
+    --log-level info \
+    --access-logfile - \
+    --error-logfile - \
+    --capture-output \
+    --enable-stdio-inheritance \
+    "app:app" 

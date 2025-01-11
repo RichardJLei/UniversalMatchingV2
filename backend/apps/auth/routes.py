@@ -7,7 +7,7 @@ import time
 import os
 import logging
 
-auth_bp = Blueprint('auth', __name__)
+auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 auth_service = get_auth_service()
 db_service = get_database_service()
 logger = logging.getLogger(__name__)
@@ -93,3 +93,10 @@ def logout():
     except Exception as e:
         print(f"Logout error: {str(e)}")
         return jsonify({'error': 'Failed to logout'}), 500 
+
+@auth_bp.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({
+        'status': 'healthy',
+        'service': 'auth'
+    }), 200 
