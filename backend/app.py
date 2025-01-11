@@ -11,10 +11,13 @@ from datetime import timedelta
 from dotenv import load_dotenv
 import os
 
-# Configure logging
+# Configure logging to output to stdout
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)  # Explicitly log to stdout
+    ]
 )
 logger = logging.getLogger(__name__)
 
@@ -54,8 +57,11 @@ def create_app():
             "http://localhost:5173",  # Development frontend
             "https://universalmatchingv2.web.app",  # Production frontend
             "https://universalmatchingv2.firebaseapp.com",  # Alternative production frontend
-            "https://universalmatchingv2-181579031870.asia-southeast1.run.app"  # Cloud Run backend
+            "https://universalmatchingv2-181579031870.asia-southeast1.run.app"  # Production Cloud Run backend
+    
         ]
+        
+        logger.info(f"Configured origins: {origins}")
         
         # Enable CORS with cookie support
         CORS(app, 
@@ -64,23 +70,17 @@ def create_app():
                  "supports_credentials": True,
                  "allow_headers": ["Content-Type", "Authorization"],
                  "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-                 "expose_headers": ["Set-Cookie"],
-                 "allow_credentials": True
+                 "expose_headers": ["Set-Cookie"]
              }})
 
         # Add CORS headers to all responses
         @app.after_request
         def after_request(response):
             origin = request.headers.get('Origin')
-            logger.info({
-                "message": "Request details",
-                "origin": origin,
-                "method": request.method,
-                "headers": dict(request.headers)
-            })
+            logger.info(f"Handling request from origin: {origin}")
             
             if origin in origins:
-                logger.info(f"Origin {origin} is allowed")
+                logger.info("Setting CORS headers for allowed origin")
                 response.headers['Access-Control-Allow-Origin'] = origin
                 response.headers['Access-Control-Allow-Credentials'] = 'true'
                 response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
@@ -88,14 +88,20 @@ def create_app():
                 response.headers['Access-Control-Expose-Headers'] = 'Set-Cookie'
                 
                 if is_production and 'Set-Cookie' in response.headers:
+                    logger.info("Setting secure cookie headers for production")
                     response.headers['Set-Cookie'] = response.headers['Set-Cookie'].split(';')[0] + '; SameSite=None; Secure'
             else:
-                logger.warning({
-                    "message": "Origin not allowed",
-                    "origin": origin,
-                    "allowed_origins": origins
-                })
-                
+                logger.warning(f"Request from unauthorized origin: {origin}")
+            
+            logger.info({
+                "message": "Response details",
+                "origin": origin,
+                "method": request.method,
+                "path": request.path,
+                "status": response.status_code,
+                "headers": dict(response.headers)
+            })
+            
             return response
 
         @app.errorhandler(Exception)
