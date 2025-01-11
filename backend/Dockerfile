@@ -24,9 +24,6 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir gunicorn==21.2.0
 
-# Copy environment files first (will be used based on FLASK_ENV)
-COPY .env* ./
-
 # Copy application code
 COPY . .
 
@@ -37,13 +34,6 @@ ENV PORT=8080 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/app \
     FLASK_APP=app:app
-
-# Load environment variables from file based on FLASK_ENV
-RUN if [ "$FLASK_ENV" = "production" ]; then \
-    cp .env.production .env; \
-    else \
-    cp .env .env; \
-    fi
 
 # Set permissions
 RUN chmod -R 755 /app
