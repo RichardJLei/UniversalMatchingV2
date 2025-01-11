@@ -10,22 +10,20 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/universalmatchingv2']
 
-  # Deploy to Cloud Run
+  # Get existing environment variables
   - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
     args:
-      - 'run'
-      - 'deploy'
-      - 'universalmatchingv2'
-      - '--image'
-      - 'gcr.io/$PROJECT_ID/universalmatchingv2'
-      - '--region'
-      - 'asia-southeast1'
-      - '--platform'
-      - 'managed'
-      - '--allow-unauthenticated'
-      # Preserve all existing environment variables
-      - '--update-env-vars'
-      - 'FLASK_ENV=production,JWT_SECRET_KEY=${_JWT_SECRET_KEY},MONGODB_URI=${_MONGODB_URI}'
+      - '-c'
+      - |
+        EXISTING_ENV=$(gcloud run services describe universalmatchingv2 --region=asia-southeast1 --format='get(spec.template.spec.containers[0].env)' --platform=managed)
+        gcloud run deploy universalmatchingv2 \
+          --image gcr.io/$PROJECT_ID/universalmatchingv2 \
+          --region asia-southeast1 \
+          --platform managed \
+          --allow-unauthenticated \
+          --update-env-vars "FLASK_ENV=production" \
+          --set-env-vars "$EXISTING_ENV"
 
 options:
   logging: CLOUD_LOGGING_ONLY
