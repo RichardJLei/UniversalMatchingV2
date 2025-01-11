@@ -61,9 +61,9 @@ def create_app():
         ]
         
         CORS(app, resources={
-            r"/api/*": {
+            r"/*": {
                 "origins": allowed_origins,
-                "methods": ["GET", "POST", "OPTIONS"],
+                "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
                 "allow_headers": ["Content-Type", "Authorization"],
                 "supports_credentials": True,
                 "expose_headers": ["Set-Cookie", "Access-Control-Allow-Credentials"]
@@ -87,8 +87,6 @@ def create_app():
                 if is_production and 'Set-Cookie' in response.headers:
                     logger.info("Setting secure cookie headers for production")
                     response.headers['Set-Cookie'] = response.headers['Set-Cookie'].split(';')[0] + '; SameSite=None; Secure'
-            else:
-                logger.warning(f"Request from unauthorized origin: {origin}")
             
             logger.info({
                 "message": "Response details",
@@ -111,6 +109,15 @@ def create_app():
         # Register blueprints
         from apps.auth.routes import auth_bp
         app.register_blueprint(auth_bp)
+
+        # Add root route handler
+        @app.route('/')
+        def root():
+            return jsonify({
+                'status': 'healthy',
+                'service': 'Universal Matching API',
+                'version': '1.0'
+            })
 
         return app
     except Exception as e:

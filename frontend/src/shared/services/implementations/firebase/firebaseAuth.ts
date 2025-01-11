@@ -55,7 +55,7 @@ export class FirebaseAuthService implements AuthService {
         // Get a fresh token
         const token = await firebaseUser.getIdToken(true);  // Force refresh
         
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/validate`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/validate`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -115,7 +115,7 @@ export class FirebaseAuthService implements AuthService {
   async signOut(): Promise<void> {
     try {
       // Clear backend session
-      await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/logout`, {
+      await fetch(`${import.meta.env.VITE_API_URL}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include'
       });
