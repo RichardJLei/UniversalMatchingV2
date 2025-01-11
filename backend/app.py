@@ -53,14 +53,16 @@ def create_app():
         app.config['JWT_COOKIE_SAMESITE'] = 'None' if is_production else 'Lax'
         
         # Configure CORS based on environment
+        allowed_origins = [
+            "http://localhost:5173",  # Your local frontend
+            "https://universalmatchingv2.web.app",
+            "https://universalmatchingv2.firebaseapp.com",
+            "https://universalmatchingv2-181579031870.asia-southeast1.run.app"
+        ]
+        
         CORS(app, resources={
             r"/api/*": {
-                "origins": [
-                    "https://universalmatchingv2.web.app",
-                    "https://universalmatchingv2.firebaseapp.com",
-                    "https://universalmatchingv2-181579031870.asia-southeast1.run.app",  # Add backend URL
-                    "http://localhost:5173"  # For local development
-                ],
+                "origins": allowed_origins,
                 "methods": ["GET", "POST", "OPTIONS"],
                 "allow_headers": ["Content-Type", "Authorization"],
                 "supports_credentials": True,
@@ -74,7 +76,7 @@ def create_app():
             origin = request.headers.get('Origin')
             logger.info(f"Handling request from origin: {origin}")
             
-            if origin in origins:
+            if origin in allowed_origins:
                 logger.info("Setting CORS headers for allowed origin")
                 response.headers['Access-Control-Allow-Origin'] = origin
                 response.headers['Access-Control-Allow-Credentials'] = 'true'
