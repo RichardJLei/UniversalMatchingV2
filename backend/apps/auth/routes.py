@@ -5,132 +5,66 @@ from datetime import datetime, timedelta
 from firebase_admin import auth as firebase_auth
 import time
 import os
+import logging
 
 auth_bp = Blueprint('auth', __name__)
 auth_service = get_auth_service()
 db_service = get_database_service()
+logger = logging.getLogger(__name__)
 
 @auth_bp.route('/api/auth/validate', methods=['POST', 'OPTIONS'])
 async def validate_token():
     """Validate Firebase token and create session"""
-    print(f"\n=== Validate Token Request ===")
-    print(f"Method: {request.method}")
-    print(f"Headers: {dict(request.headers)}")
-    print(f"Origin: {request.headers.get('Origin')}")
+    logger.info(f"\n=== Validate Token Request ===")
+    logger.info(f"Method: {request.method}")
+    logger.info(f"Headers: {dict(request.headers)}")
+    logger.info(f"Origin: {request.headers.get('Origin')}")
     
     # Handle preflight request
     if request.method == 'OPTIONS':
-        print("Handling OPTIONS request")
+        logger.info("Handling OPTIONS request")
         response = jsonify({'message': 'OK'})
         origin = request.headers.get('Origin')
         
-        print(f"Setting CORS headers for origin: {origin}")
+        logger.info(f"Setting CORS headers for origin: {origin}")
         response.headers['Access-Control-Allow-Origin'] = origin
         response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
         response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
         response.headers['Access-Control-Allow-Credentials'] = 'true'
         
-        print("Response Headers:", dict(response.headers))
+        logger.info("Response Headers:", dict(response.headers))
         return response
 
     try:
         # Get token from Authorization header
         auth_header = request.headers.get('Authorization', '')
-        print(f"Auth header: {auth_header[:20]}...")  # Print first 20 chars for security
+        logger.info(f"Auth header: {auth_header[:20]}...")  # Print first 20 chars for security
         
         if not auth_header.startswith('Bearer '):
-            print("No Bearer token found")
+            logger.warning("No Bearer token found")
             return jsonify({'error': 'No token provided'}), 401
             
         token = auth_header.split('Bearer ')[1]
         if not token:
-            print("Empty token after Bearer")
+            logger.warning("Empty token after Bearer")
             return jsonify({'error': 'Invalid token format'}), 401
 
-        # Add a small delay to handle clock skew
-        time.sleep(1)
-
         try:
-            decoded_token = firebase_auth.verify_id_token(
-                token,
-                check_revoked=True
-            )
-            user_info = {
-                'user_id': decoded_token['uid'],
-                'email': decoded_token.get('email'),
-                'name': decoded_token.get('name'),
-                'picture': decoded_token.get('picture')
-            }
-        except firebase_auth.InvalidIdTokenError as e:
-            if "Token used too early" in str(e):
-                time.sleep(1)
-                try:
-                    decoded_token = firebase_auth.verify_id_token(token, check_revoked=True)
-                    user_info = {
-                        'user_id': decoded_token['uid'],
-                        'email': decoded_token.get('email'),
-                        'name': decoded_token.get('name'),
-                        'picture': decoded_token.get('picture')
-                    }
-                except Exception as retry_error:
-                    print(f"Retry token validation error: {str(retry_error)}")
-                    return jsonify({'error': 'Invalid token after retry'}), 401
+            decoded_token = auth_service.verify_token(token)
+            if decoded_token:
+                logger.info(f"Token validated for user: {decoded_token.get('email')}")
+                return jsonify({'status': 'success', 'user': decoded_token})
             else:
-                print(f"Token validation error: {str(e)}")
+                logger.warning("Token validation failed")
                 return jsonify({'error': 'Invalid token'}), 401
 
-        if not user_info:
-            return jsonify({'error': 'Invalid token'}), 401
-
-        try:
-            # Check if user exists in database
-            existing_user = await db_service.find_user_by_email(user_info['email'])
-            
-            if not existing_user:
-                # Create new user with default role
-                user_data = {
-                    'firebase_uid': user_info['user_id'],
-                    'email': user_info['email'],
-                    'name': user_info.get('name'),
-                    'photo_url': user_info.get('picture'),
-                    'role': 'user',
-                    'created_at': datetime.utcnow(),
-                    'last_login': datetime.utcnow()
-                }
-                await db_service.create_user(user_data)
-            else:
-                # Update last login time
-                await db_service.update_one(
-                    'users',
-                    {'email': user_info['email']},
-                    {'last_login': datetime.utcnow()}
-                )
-
-            # Create session
-            access_token = create_access_token(identity=user_info['user_id'])
-            response = jsonify({
-                'status': 'success',
-                'user': user_info
-            })
-            set_access_cookies(response, access_token)
-            
-            # Set SameSite attribute for cookies in production
-            is_production = os.environ.get('FLASK_ENV') == 'production'
-            if is_production and 'Set-Cookie' in response.headers:
-                response.headers['Set-Cookie'] = response.headers['Set-Cookie'].split(';')[0] + '; SameSite=None; Secure'
-            
-            return response
-
-        except Exception as db_error:
-            print(f"Database error: {str(db_error)}")
-            # Still return success even if DB operations fail
-            return jsonify({'status': 'success', 'user': user_info})
+        except Exception as e:
+            logger.error(f"Token validation error: {str(e)}", exc_info=True)
+            return jsonify({'error': str(e)}), 401
 
     except Exception as e:
-        print(f"Token validation error: {str(e)}")
-        print(f"Error type: {type(e)}")
-        print(f"Error traceback:", exc_info=True)
-        return jsonify({'error': str(e)}), 401
+        logger.error(f"Validation route error: {str(e)}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
 
 @auth_bp.route('/api/auth/logout', methods=['POST', 'OPTIONS'])
 def logout():
