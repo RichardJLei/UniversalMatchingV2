@@ -16,8 +16,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy requirements files first for better caching
 COPY requirements.txt .
 
-# Install production dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install production dependencies and ensure gunicorn is installed
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir gunicorn==21.2.0 && \
+    which gunicorn  # Print gunicorn location
 
 # Copy application code
 COPY . .
@@ -29,6 +31,7 @@ ENV FLASK_ENV=${FLASK_ENV}
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONPATH=/app
 ENV FLASK_APP=app:app
+ENV PATH="/usr/local/bin:${PATH}"  # Ensure /usr/local/bin is in PATH
 
 # Create necessary directories
 RUN mkdir -p /app/config /app/logs

@@ -18,8 +18,12 @@ wait_for_app() {
     return 1
 }
 
+# Print PATH and try to locate gunicorn
+echo "PATH: $PATH"
+which gunicorn || echo "gunicorn not found in PATH"
+
 # Start Gunicorn in the background
-/usr/local/bin/gunicorn --bind :$PORT \
+gunicorn --bind :$PORT \
     --workers 1 \
     --threads 8 \
     --timeout 0 \
