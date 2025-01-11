@@ -10,6 +10,7 @@ WORKDIR /app
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    netcat-traditional \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements files first for better caching
@@ -38,20 +39,9 @@ RUN chmod -R 755 /app
 # Expose port
 EXPOSE 8080
 
-# Use a startup script
+# Copy and set up startup script
 COPY scripts/startup.sh /startup.sh
 RUN chmod +x /startup.sh
 
-# Run the application with proper health check configuration
-CMD exec gunicorn --bind :$PORT \
-    --workers 1 \
-    --threads 8 \
-    --timeout 0 \
-    --graceful-timeout 30 \
-    --keep-alive 2 \
-    --log-level info \
-    --access-logfile - \
-    --error-logfile - \
-    --capture-output \
-    --enable-stdio-inheritance \
-    "app:app" 
+# Use the startup script as entrypoint
+ENTRYPOINT ["/startup.sh"] 

@@ -1,11 +1,25 @@
 #!/bin/bash
 set -e
 
-# Wait for port to be available
-timeout 30s bash -c 'until printf "" 2>>/dev/null >>/dev/tcp/$0/$1; do sleep 1; done' localhost 8080
+echo "Starting application..."
 
-# Start Gunicorn
-exec gunicorn --bind :$PORT \
+# Function to check if the application is responding
+wait_for_app() {
+    echo "Waiting for application to start..."
+    for i in {1..30}; do
+        if nc -z localhost 8080; then
+            echo "Application is ready!"
+            return 0
+        fi
+        echo "Attempt $i: Application is not ready yet..."
+        sleep 1
+    done
+    echo "Application failed to start within timeout"
+    return 1
+}
+
+# Start Gunicorn in the background
+gunicorn --bind :$PORT \
     --workers 1 \
     --threads 8 \
     --timeout 0 \
@@ -16,4 +30,20 @@ exec gunicorn --bind :$PORT \
     --error-logfile - \
     --capture-output \
     --enable-stdio-inheritance \
-    "app:app" 
+    "app:app" &
+
+# Store the Gunicorn PID
+GUNICORN_PID=$!
+
+# Wait for the application to be ready
+wait_for_app
+
+# If the application didn't start properly, exit
+if [ $? -ne 0 ]; then
+    echo "Application failed to start"
+    kill $GUNICORN_PID
+    exit 1
+fi
+
+# Wait for Gunicorn to exit
+wait $GUNICORN_PID 
