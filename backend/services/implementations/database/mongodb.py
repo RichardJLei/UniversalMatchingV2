@@ -1,43 +1,92 @@
-from typing import Any, Dict, List, Optional
-from motor.motor_asyncio import AsyncIOMotorClient
+from typing import Dict, List, Optional
+from pymongo import MongoClient
 from ...interfaces.database import DatabaseService
+from config.settings import Config
+import logging
+
+logger = logging.getLogger(__name__)
 
 class MongoDBService(DatabaseService):
-    def __init__(self, connection_string: str, database: str):
-        self.client = AsyncIOMotorClient(connection_string)
-        self.db = self.client[database]
+    def __init__(self, config: Config):
+        """Initialize MongoDB connection"""
+        self.config = config
+        self.client = None
+        self.db = None
 
-    async def connect(self) -> None:
-        await self.client.admin.command('ping')
+    def connect(self) -> None:
+        """Connect to MongoDB"""
+        try:
+            if not self.client:
+                self.client = MongoClient(self.config.DATABASE_CONNECTION_STRING)
+                self.db = self.client[self.config.DATABASE_NAME]
+                # Test connection
+                self.client.admin.command('ping')
+                logger.info("MongoDB connection initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize MongoDB connection: {str(e)}", exc_info=True)
+            raise
 
-    async def disconnect(self) -> None:
-        self.client.close()
+    def disconnect(self) -> None:
+        """Disconnect from MongoDB"""
+        try:
+            if self.client:
+                self.client.close()
+                self.client = None
+                self.db = None
+                logger.info("MongoDB connection closed")
+        except Exception as e:
+            logger.error(f"Error closing MongoDB connection: {str(e)}", exc_info=True)
+            raise
 
-    async def find_one(self, collection: str, query: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        result = await self.db[collection].find_one(query)
-        return result
+    def find_one(self, collection: str, query: Dict) -> Optional[Dict]:
+        """Find a single document"""
+        try:
+            if not self.client:
+                self.connect()
+            return self.db[collection].find_one(query)
+        except Exception as e:
+            logger.error(f"MongoDB find_one error: {str(e)}", exc_info=True)
+            raise
 
-    async def find_many(self, collection: str, query: Dict[str, Any]) -> List[Dict[str, Any]]:
-        cursor = self.db[collection].find(query)
-        return await cursor.to_list(None)
+    def find_many(self, collection: str, query: Dict) -> List[Dict]:
+        """Find multiple documents"""
+        try:
+            if not self.client:
+                self.connect()
+            return list(self.db[collection].find(query))
+        except Exception as e:
+            logger.error(f"MongoDB find_many error: {str(e)}", exc_info=True)
+            raise
 
-    async def insert_one(self, collection: str, document: Dict[str, Any]) -> str:
+    def insert_one(self, collection: str, document: Dict) -> str:
         """Insert a single document"""
-        result = await self.db[collection].insert_one(document)
-        return str(result.inserted_id)
+        try:
+            if not self.client:
+                self.connect()
+            result = self.db[collection].insert_one(document)
+            return str(result.inserted_id)
+        except Exception as e:
+            logger.error(f"MongoDB insert_one error: {str(e)}", exc_info=True)
+            raise
 
-    async def update_one(self, collection: str, filter_dict: dict, update_dict: dict) -> bool:
+    def update_one(self, collection: str, query: Dict, update: Dict) -> bool:
         """Update a single document"""
         try:
-            result = await self.db[collection].update_one(
-                filter_dict,
-                {"$set": update_dict}  # Add $set operator
-            )
+            if not self.client:
+                self.connect()
+            result = self.db[collection].update_one(query, {"$set": update})
             return result.modified_count > 0
         except Exception as e:
-            raise ValueError(f"Failed to update document: {str(e)}")
+            logger.error(f"MongoDB update_one error: {str(e)}", exc_info=True)
+            raise
 
-    async def delete_one(self, collection: str, query: Dict[str, Any]) -> bool:
+    def delete_one(self, collection: str, query: Dict) -> bool:
         """Delete a single document"""
-        result = await self.db[collection].delete_one(query)
-        return result.deleted_count > 0 
+        try:
+            if not self.client:
+                self.connect()
+            result = self.db[collection].delete_one(query)
+            return result.deleted_count > 0
+        except Exception as e:
+            logger.error(f"MongoDB delete_one error: {str(e)}", exc_info=True)
+            raise 
