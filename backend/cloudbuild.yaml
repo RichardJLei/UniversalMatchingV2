@@ -1,0 +1,30 @@
+steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/backend-universalmatchingv2', 
+           '--build-arg', 'BUILD_TIME=$BUILD_TIME',
+           './backend']
+
+  # Push the container image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/backend-universalmatchingv2']
+
+  # Deploy container image to Cloud Run
+  - name: 'gcr.io/google-cloud-sdk/gcloud'
+    args:
+    - 'run'
+    - 'deploy'
+    - 'backend-universalmatchingv2'
+    - '--image'
+    - 'gcr.io/$PROJECT_ID/backend-universalmatchingv2'
+    - '--region'
+    - 'us-central1'
+    - '--platform'
+    - 'managed'
+    - '--allow-unauthenticated'
+
+substitutions:
+  _BUILD_TIME: '${_BUILD_TIME}'
+
+images:
+  - 'gcr.io/$PROJECT_ID/backend-universalmatchingv2' 
