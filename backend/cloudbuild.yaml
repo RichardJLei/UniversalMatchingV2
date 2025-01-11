@@ -22,7 +22,7 @@ steps:
       '--platform', 'managed',
       '--allow-unauthenticated',
       '--update-env-vars',
-      'FLASK_ENV=production,DATABASE_NAME=universal_matching_db,AUTH_PROVIDER=firebase,AUTH_PROJECT_ID=universalmatchingv2,STORAGE_PROVIDER=gcs,STORAGE_PROJECT_ID=universalmatchingv2,STORAGE_BUCKET_NAME=universalmatchingv2,DATABASE_CONNECTION_STRING=mongodb+srv://richardjiangfrm:LM3cw8L9PXggrOCY@cluster0.x69rk.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0,JWT_SECRET_KEY=f89e7b8b7b3d42f3a5e8d7c3f89e7b8b7b3d42f3a5e8d7c3f89e7b8b7b3d42f3,AUTH_CREDENTIALS_PATH=/secrets/firebase-credentials.json,STORAGE_CREDENTIALS_PATH=/secrets/firebase-credentials.json'
+      'FLASK_ENV=production,DATABASE_NAME=universal_matching_db,AUTH_PROVIDER=firebase,AUTH_PROJECT_ID=universalmatchingv2,STORAGE_PROVIDER=gcs,STORAGE_PROJECT_ID=universalmatchingv2,STORAGE_BUCKET_NAME=universalmatchingv2,DATABASE_CONNECTION_STRING=mongodb+srv://richardjiangfrm:LM3cw8L9PXggrOCY@cluster0.x69rk.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0,JWT_SECRET_KEY=f89e7b8b7b3d42f3a5e8d7c3f89e7b8b7b3d42f3a5e8d7c3f89e7b8b7b3d42f3,AUTH_CREDENTIALS_PATH=/secrets/firebase-credentials.json,STORAGE_CREDENTIALS_PATH=/secrets/firebase-credentials.json,CORS_ORIGINS=https://universalmatchingv2.web.app,https://universalmatchingv2.firebaseapp.com,https://universalmatchingv2-181579031870.asia-southeast1.run.app,http://localhost:5173'
     ]
 
 substitutions:

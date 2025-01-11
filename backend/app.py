@@ -53,25 +53,20 @@ def create_app():
         app.config['JWT_COOKIE_SAMESITE'] = 'None' if is_production else 'Lax'
         
         # Configure CORS based on environment
-        origins = [
-            "http://localhost:5173",  # Development frontend
-            "https://universalmatchingv2.web.app",  # Production frontend
-            "https://universalmatchingv2.firebaseapp.com",  # Alternative production frontend
-            "https://universalmatchingv2-181579031870.asia-southeast1.run.app"  # Production Cloud Run backend
-    
-        ]
-        
-        logger.info(f"Configured origins: {origins}")
-        
-        # Enable CORS with cookie support
-        CORS(app, 
-             resources={r"/api/*": {
-                 "origins": origins,
-                 "supports_credentials": True,
-                 "allow_headers": ["Content-Type", "Authorization"],
-                 "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-                 "expose_headers": ["Set-Cookie"]
-             }})
+        CORS(app, resources={
+            r"/api/*": {
+                "origins": [
+                    "https://universalmatchingv2.web.app",
+                    "https://universalmatchingv2.firebaseapp.com",
+                    "https://universalmatchingv2-181579031870.asia-southeast1.run.app",  # Add backend URL
+                    "http://localhost:5173"  # For local development
+                ],
+                "methods": ["GET", "POST", "OPTIONS"],
+                "allow_headers": ["Content-Type", "Authorization"],
+                "supports_credentials": True,
+                "expose_headers": ["Set-Cookie", "Access-Control-Allow-Credentials"]
+            }
+        })
 
         # Add CORS headers to all responses
         @app.after_request

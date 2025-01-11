@@ -69,30 +69,17 @@ async def validate_token():
 @auth_bp.route('/api/auth/logout', methods=['POST', 'OPTIONS'])
 def logout():
     """Clear session cookies"""
-    # Handle preflight request
     if request.method == 'OPTIONS':
         response = jsonify({'message': 'OK'})
-        # Add all required CORS headers for preflight
-        origin = request.headers.get('Origin')
-        response.headers['Access-Control-Allow-Origin'] = origin
-        response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
-        response.headers['Access-Control-Allow-Credentials'] = 'true'
         return response
 
     try:
         response = jsonify({'message': 'Logged out successfully'})
         unset_jwt_cookies(response)
-        
-        # Set SameSite attribute for cookies
-        is_production = os.environ.get('FLASK_ENV') == 'production'
-        if is_production and 'Set-Cookie' in response.headers:
-            response.headers['Set-Cookie'] = response.headers['Set-Cookie'].split(';')[0] + '; SameSite=None; Secure'
-            
         return response
     except Exception as e:
-        print(f"Logout error: {str(e)}")
-        return jsonify({'error': 'Failed to logout'}), 500 
+        logger.error(f"Logout error: {str(e)}")
+        return jsonify({'error': 'Failed to logout'}), 500
 
 @auth_bp.route('/health', methods=['GET'])
 def health_check():
@@ -100,3 +87,33 @@ def health_check():
         'status': 'healthy',
         'service': 'auth'
     }), 200 
+
+@auth_bp.route('/health/db', methods=['GET'])
+def db_health_check():
+    try:
+        # Test database connection
+        db_service.get_client().admin.command('ping')
+        return jsonify({
+            'status': 'healthy',
+            'service': 'auth',
+            'database': 'connected',
+            'connection_string': db_service.get_connection_string()[:20] + '...' # Show partial string for security
+        }), 200
+    except Exception as e:
+        logger.error(f"Database connection error: {str(e)}")
+        return jsonify({
+            'status': 'unhealthy',
+            'service': 'auth',
+            'database': 'disconnected',
+            'error': str(e)
+        }), 500 
+
+@auth_bp.after_request
+def after_request(response):
+    origin = request.headers.get('Origin')
+    if origin in app.config['CORS_ORIGINS']:
+        response.headers['Access-Control-Allow-Origin'] = origin
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
+        response.headers['Access-Control-Allow-Methods'] = 'POST, GET, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    return response 
