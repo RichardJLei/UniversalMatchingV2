@@ -23,8 +23,17 @@ steps:
       - '--platform'
       - 'managed'
       - '--allow-unauthenticated'
-      - '--set-env-vars'
+      # Preserve existing environment variables and secrets
+      - '--update-env-vars'
       - 'FLASK_ENV=production'
+      # Keep existing secrets and env vars
+      - '--update-secrets'
+      - 'JWT_SECRET_KEY=jwt-secret:latest'
+      - '--set-secrets'
+      - '/secret/mongo-uri=mongodb-uri:latest'
+      # Preserve existing service configuration
+      - '--preserve-revision'
+      - '--no-traffic'
 
 # Add logging configuration
 options:
