@@ -17,6 +17,7 @@ COPY . .
 # Set environment variables
 ENV PORT=8080
 ENV PYTHONUNBUFFERED=1
+ENV FLASK_ENV=production
 
 # Expose port
 EXPOSE 8080
