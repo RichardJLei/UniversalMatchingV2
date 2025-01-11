@@ -3,21 +3,21 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: [
       'build',
-      '-t', '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}',
+      '-t', 'gcr.io/$PROJECT_ID/${_SERVICE_NAME}:$COMMIT_SHA',
       '--build-arg', 'FLASK_ENV=production',
       './backend'
     ]
 
   # Push the container image
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}']
+    args: ['push', 'gcr.io/$PROJECT_ID/${_SERVICE_NAME}:$COMMIT_SHA']
 
-  # Deploy to Cloud Run with secrets and environment variables
+  # Deploy to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args: [
       'run', 'deploy', '${_SERVICE_NAME}',
-      '--image', '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}',
+      '--image', 'gcr.io/$PROJECT_ID/${_SERVICE_NAME}:$COMMIT_SHA',
       '--region', '${_REGION}',
       '--platform', 'managed',
       '--allow-unauthenticated',
@@ -29,11 +29,9 @@ steps:
 substitutions:
   _SERVICE_NAME: universalmatchingv2
   _REGION: asia-southeast1
-  _REPOSITORY: universalmatchingv2
-  _IMAGE: backend
 
 options:
   logging: CLOUD_LOGGING_ONLY
 
 images:
-  - 'gcr.io/$PROJECT_ID/${_SERVICE_NAME}' 
+  - 'gcr.io/$PROJECT_ID/${_SERVICE_NAME}:$COMMIT_SHA' 
