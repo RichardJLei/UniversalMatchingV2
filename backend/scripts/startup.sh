@@ -19,7 +19,7 @@ wait_for_app() {
 }
 
 # Start Gunicorn in the background
-gunicorn --bind :$PORT \
+/usr/local/bin/gunicorn --bind :$PORT \
     --workers 1 \
     --threads 8 \
     --timeout 0 \
