@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from pymongo import MongoClient
 from ...interfaces.database import DatabaseService
 from config.settings import Config
@@ -89,4 +89,25 @@ class MongoDBService(DatabaseService):
             return result.deleted_count > 0
         except Exception as e:
             logger.error(f"MongoDB delete_one error: {str(e)}", exc_info=True)
+            raise
+
+    async def find_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
+        """Find a user by email"""
+        try:
+            if not self.client:
+                self.connect()
+            return self.db["users"].find_one({"email": email})
+        except Exception as e:
+            logger.error(f"MongoDB find_user_by_email error: {str(e)}", exc_info=True)
+            raise
+
+    async def create_user(self, user_data: Dict[str, Any]) -> str:
+        """Create a new user"""
+        try:
+            if not self.client:
+                self.connect()
+            result = self.db["users"].insert_one(user_data)
+            return str(result.inserted_id)
+        except Exception as e:
+            logger.error(f"MongoDB create_user error: {str(e)}", exc_info=True)
             raise 
