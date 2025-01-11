@@ -27,8 +27,6 @@ steps:
       - '--platform'
       - 'managed'
       - '--allow-unauthenticated'
-      - '--port'
-      - '8080'
       - '--timeout'
       - '300s'
       - '--cpu'
@@ -40,7 +38,7 @@ steps:
       - '--max-instances'
       - '10'
       - '--set-env-vars'
-      - 'FLASK_ENV=production,PORT=8080,PYTHONUNBUFFERED=1'
+      - 'FLASK_ENV=production'
 
 substitutions:
   _SERVICE_NAME: universalmatchingv2
