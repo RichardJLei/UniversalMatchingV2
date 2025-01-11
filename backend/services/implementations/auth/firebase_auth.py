@@ -2,17 +2,37 @@ from typing import Optional, Dict
 import firebase_admin
 from firebase_admin import auth, credentials
 from ...interfaces.auth import AuthService
-from config.config import Config
+from config.settings import Config
+import logging
+import os
+
+logger = logging.getLogger(__name__)
 
 class FirebaseAuthService(AuthService):
-    def __init__(self):
-        """Initialize Firebase Admin SDK"""
+    def __init__(self, config: Config):
+        """Initialize Firebase Auth Service with config"""
+        self.config = config
+        self.project_id = config.AUTH_PROJECT_ID
+        
         try:
+            # Try to get existing app
             firebase_admin.get_app()
+            logger.info("Firebase app already initialized")
         except ValueError:
-            config = Config()
-            cred = credentials.Certificate(config.AUTH_CREDENTIALS_PATH)
-            firebase_admin.initialize_app(cred)
+            logger.info("Initializing new Firebase app")
+            try:
+                # For Cloud Run (using mounted secret)
+                if os.path.exists('/secrets/firebase-credentials.json'):
+                    cred = credentials.Certificate('/secrets/firebase-credentials.json')
+                # For local development
+                else:
+                    cred = credentials.Certificate(self.config.AUTH_CREDENTIALS_PATH)
+                
+                firebase_admin.initialize_app(cred)
+                logger.info("Firebase app initialized successfully")
+            except Exception as e:
+                logger.error(f"Failed to initialize Firebase: {str(e)}", exc_info=True)
+                raise
 
     def verify_token(self, token: str) -> Optional[Dict]:
         """Verify Firebase ID token"""
