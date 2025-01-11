@@ -10,7 +10,6 @@ from flask_jwt_extended import JWTManager
 from datetime import timedelta
 from dotenv import load_dotenv
 import os
-from google.cloud import error_reporting
 
 # Configure logging
 logging.basicConfig(
@@ -31,9 +30,6 @@ def create_app():
     """Application factory function"""
     try:
         app = Flask(__name__)
-        
-        # Initialize error reporting
-        error_client = error_reporting.Client()
         
         # Log startup information
         logger.info("Starting application...")
@@ -58,7 +54,7 @@ def create_app():
             "http://localhost:5173",  # Development frontend
             "https://universalmatchingv2.web.app",  # Production frontend
             "https://universalmatchingv2.firebaseapp.com",  # Alternative production frontend
-            "https://backend-universalmatchingv2-uc.a.run.app"  # Cloud Run backend
+            "https://universalmatchingv2-181579031870.asia-southeast1.run.app"  # Cloud Run backend
         ]
         
         # Enable CORS with cookie support
@@ -69,7 +65,7 @@ def create_app():
                  "allow_headers": ["Content-Type", "Authorization"],
                  "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
                  "expose_headers": ["Set-Cookie"],
-                 "allow_credentials": True  # Important for cookies
+                 "allow_credentials": True
              }})
 
         # Add CORS headers to all responses
@@ -93,8 +89,6 @@ def create_app():
                 
                 if is_production and 'Set-Cookie' in response.headers:
                     response.headers['Set-Cookie'] = response.headers['Set-Cookie'].split(';')[0] + '; SameSite=None; Secure'
-                    
-                print("Response Headers:", dict(response.headers))
             else:
                 logger.warning({
                     "message": "Origin not allowed",
@@ -106,7 +100,6 @@ def create_app():
 
         @app.errorhandler(Exception)
         def handle_error(error):
-            error_client.report_exception()
             logger.error(f"Unhandled error: {str(error)}", exc_info=True)
             return jsonify({'error': str(error)}), 500
 
@@ -115,12 +108,6 @@ def create_app():
         # Register blueprints
         from apps.auth.routes import auth_bp
         app.register_blueprint(auth_bp)
-
-        # Print environment variables (excluding sensitive ones)
-        print("\n=== Environment Variables ===")
-        for key, value in os.environ.items():
-            if not any(sensitive in key.lower() for sensitive in ['key', 'secret', 'password', 'token']):
-                print(f"{key}: {value}")
 
         return app
     except Exception as e:
