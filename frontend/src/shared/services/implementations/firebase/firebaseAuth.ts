@@ -138,7 +138,7 @@ export class FirebaseAuthService implements AuthService {
               photoURL: user.photoURL,
               lastLogin: new Date(user.metadata.lastSignInTime!)
             },
-            isNewUser: false  // Default to false for existing sessions
+            isNewUser: false
           });
         } else {
           resolve({

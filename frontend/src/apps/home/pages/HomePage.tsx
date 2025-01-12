@@ -5,6 +5,9 @@ import { Navigate } from 'react-router-dom'
 const HomePage: FC = () => {
   const { user, isLoading, isNewUser } = useAuth()
 
+  console.log('HomePage render - isNewUser:', isNewUser)
+  console.log('HomePage render - user:', user)
+
   if (isLoading) {
     return <div>Loading...</div>
   }

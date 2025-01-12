@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, FC, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, FC, ReactNode, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { User, AuthService } from '../services/interfaces/auth'
 import { FirebaseAuthService } from '../services/implementations/firebase/firebaseAuth'
@@ -21,6 +21,7 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isNewUser, setIsNewUser] = useState(false)
+  const initialRenderRef = useRef(true)
   const authService: AuthService = new FirebaseAuthService()
   const navigate = useNavigate()
 
@@ -32,7 +33,10 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
         const response = await authService.getCurrentUser();
         if (isMounted) {
           setUser(response.user);
-          setIsNewUser(response.isNewUser);
+          if (initialRenderRef.current) {
+            setIsNewUser(response.isNewUser);
+            initialRenderRef.current = false;
+          }
           if (response.user) {
             navigate('/home');
           }
@@ -58,6 +62,7 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       if (user) {
         setUser(user)
         setIsNewUser(newUser)
+        console.log('Sign in completed - isNewUser:', newUser)
         navigate('/home')
       }
     } catch (error: any) {
@@ -71,6 +76,7 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       await authService.signOut()
       setUser(null)
       setIsNewUser(false)
+      initialRenderRef.current = true
       navigate('/')
     } catch (error) {
       console.error('Error signing out:', error)
