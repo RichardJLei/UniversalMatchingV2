@@ -10,6 +10,7 @@ from flask_jwt_extended import JWTManager
 from datetime import timedelta
 from dotenv import load_dotenv
 import os
+from werkzeug.exceptions import HTTPException
 
 # Configure logging to output to stdout
 logging.basicConfig(
@@ -74,10 +75,9 @@ def create_app():
         @app.after_request
         def after_request(response):
             origin = request.headers.get('Origin')
-            logger.info(f"Handling request from origin: {origin}")
             
-            if origin in allowed_origins:
-                logger.info("Setting CORS headers for allowed origin")
+            # Only process CORS for actual origins (not None or empty)
+            if origin and origin in allowed_origins:
                 response.headers['Access-Control-Allow-Origin'] = origin
                 response.headers['Access-Control-Allow-Credentials'] = 'true'
                 response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
@@ -85,10 +85,11 @@ def create_app():
                 response.headers['Access-Control-Expose-Headers'] = 'Set-Cookie'
                 
                 if is_production and 'Set-Cookie' in response.headers:
-                    logger.info("Setting secure cookie headers for production")
-                    response.headers['Set-Cookie'] = response.headers['Set-Cookie'].split(';')[0] + '; SameSite=None; Secure'
+                    cookie_parts = response.headers['Set-Cookie'].split(';')[0]
+                    response.headers['Set-Cookie'] = f"{cookie_parts}; SameSite=None; Secure"
             
-            logger.info({
+            # Log response details for debugging
+            logger.debug({
                 "message": "Response details",
                 "origin": origin,
                 "method": request.method,
@@ -101,23 +102,72 @@ def create_app():
 
         @app.errorhandler(Exception)
         def handle_error(error):
-            logger.error(f"Unhandled error: {str(error)}", exc_info=True)
-            return jsonify({'error': str(error)}), 500
+            status_code = getattr(error, 'code', 500)
+            
+            # Log the full error details
+            logger.error(f"Error handling request: {str(error)}", exc_info=True)
+            logger.error(f"Request details - Method: {request.method}, Path: {request.path}, Headers: {dict(request.headers)}")
+            
+            error_response = {
+                'error': str(error),
+                'status_code': status_code,
+                'path': request.path,
+                'method': request.method
+            }
+            
+            if not isinstance(error, HTTPException):
+                status_code = 500
+                error_response['error'] = 'Internal Server Error'
+            
+            response = jsonify(error_response)
+            
+            # Handle CORS for error responses
+            origin = request.headers.get('Origin')
+            if origin and origin in allowed_origins:
+                response.headers['Access-Control-Allow-Origin'] = origin
+                response.headers['Access-Control-Allow-Credentials'] = 'true'
+                if request.method == 'OPTIONS':
+                    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+                    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+                    response.headers['Access-Control-Max-Age'] = '3600'
+                    status_code = 200  # Return 200 for OPTIONS requests
+            
+            return response, status_code
 
         jwt = JWTManager(app)
 
-        # Register blueprints
+        # Register blueprints with proper URL prefix
         from apps.auth.routes import auth_bp
-        app.register_blueprint(auth_bp)
+        app.register_blueprint(auth_bp, url_prefix='/api/auth')
 
-        # Add root route handler
-        @app.route('/')
+        # Add health check route with minimal processing
+        @app.route('/', methods=['GET'])
         def root():
             return jsonify({
                 'status': 'healthy',
                 'service': 'Universal Matching API',
                 'version': '1.0'
-            })
+            }), 200  # Explicitly return 200 status
+
+        @app.route('/api/health', methods=['GET'])
+        def health_check():
+            return jsonify({'status': 'healthy'}), 200
+
+        # Add OPTIONS handler for CORS preflight requests
+        @app.route('/', defaults={'path': ''}, methods=['OPTIONS'])
+        @app.route('/<path:path>', methods=['OPTIONS'])
+        def handle_options(path):
+            response = app.make_default_options_response()
+            origin = request.headers.get('Origin')
+            
+            if origin in allowed_origins:
+                response.headers['Access-Control-Allow-Origin'] = origin
+                response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+                response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+                response.headers['Access-Control-Allow-Credentials'] = 'true'
+                response.headers['Access-Control-Max-Age'] = '3600'
+            
+            return response
 
         return app
     except Exception as e:
