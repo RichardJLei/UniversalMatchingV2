@@ -6,8 +6,13 @@ export interface User {
   lastLogin: Date
 }
 
+export interface AuthResponse {
+  user: User | null
+  isNewUser: boolean
+}
+
 export interface AuthService {
-  signInWithGoogle(): Promise<User | null>
-  signOut(): Promise<void>
-  getCurrentUser(): Promise<User | null>
+  getCurrentUser: () => Promise<AuthResponse>
+  signInWithGoogle: () => Promise<AuthResponse>
+  signOut: () => Promise<void>
 } 

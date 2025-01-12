@@ -11,6 +11,8 @@ from datetime import timedelta
 from dotenv import load_dotenv
 import os
 from werkzeug.exceptions import HTTPException
+import asyncio
+from asgiref.wsgi import WsgiToAsgi
 
 # Configure logging to output to stdout
 logging.basicConfig(
@@ -34,6 +36,13 @@ def create_app():
     """Application factory function"""
     try:
         app = Flask(__name__)
+        
+        # Initialize event loop for async operations
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        # Enable async support
+        app.config['ASYNC_MODE'] = True
         
         # Log startup information
         logger.info("Starting application...")
@@ -169,7 +178,7 @@ def create_app():
             
             return response
 
-        return app
+        return app  # Return the Flask app directly, not ASGI
     except Exception as e:
         logger.error(f"Error creating application: {str(e)}")
         traceback.print_exc()

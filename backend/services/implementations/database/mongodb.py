@@ -1,113 +1,108 @@
-from typing import Dict, List, Optional, Any
-from pymongo import MongoClient
+from typing import Any, Dict, List, Optional
+from motor.motor_asyncio import AsyncIOMotorClient
 from ...interfaces.database import DatabaseService
-from config.settings import Config
 import logging
 
 logger = logging.getLogger(__name__)
 
 class MongoDBService(DatabaseService):
-    def __init__(self, config: Config):
-        """Initialize MongoDB connection"""
-        self.config = config
-        self.client = None
-        self.db = None
+    def __init__(self, connection_string: str, database: str):
+        try:
+            self.client = AsyncIOMotorClient(connection_string)
+            self.db = self.client[database]
+            logger.info("MongoDB connection initialized successfully")
+        except Exception as e:
+            logger.error(f"Error initializing MongoDB connection: {str(e)}")
+            raise
 
     def connect(self) -> None:
-        """Connect to MongoDB"""
+        """Test connection by pinging the database"""
         try:
-            if not self.client:
-                self.client = MongoClient(self.config.DATABASE_CONNECTION_STRING)
-                self.db = self.client[self.config.DATABASE_NAME]
-                # Test connection
-                self.client.admin.command('ping')
-                logger.info("MongoDB connection initialized successfully")
+            self.client.admin.command('ping')
+            logger.info("Successfully connected to MongoDB")
         except Exception as e:
-            logger.error(f"Failed to initialize MongoDB connection: {str(e)}", exc_info=True)
+            logger.error(f"MongoDB connection error: {str(e)}")
             raise
 
     def disconnect(self) -> None:
-        """Disconnect from MongoDB"""
-        try:
-            if self.client:
-                self.client.close()
-                self.client = None
-                self.db = None
-                logger.info("MongoDB connection closed")
-        except Exception as e:
-            logger.error(f"Error closing MongoDB connection: {str(e)}", exc_info=True)
-            raise
+        """Close the database connection"""
+        self.client.close()
+        logger.info("MongoDB connection closed")
 
-    def find_one(self, collection: str, query: Dict) -> Optional[Dict]:
+    async def find_one(self, collection: str, query: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Find a single document"""
         try:
-            if not self.client:
-                self.connect()
-            return self.db[collection].find_one(query)
+            logger.info(f"Finding document in {collection} with query: {query}")
+            result = await self.db[collection].find_one(query)
+            logger.info(f"Find result: {result}")
+            return result
         except Exception as e:
-            logger.error(f"MongoDB find_one error: {str(e)}", exc_info=True)
+            logger.error(f"Error in find_one operation: {str(e)}")
             raise
 
-    def find_many(self, collection: str, query: Dict) -> List[Dict]:
+    def find_many(self, collection: str, query: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Find multiple documents"""
         try:
-            if not self.client:
-                self.connect()
-            return list(self.db[collection].find(query))
+            cursor = self.db[collection].find(query)
+            return cursor.to_list(None)
         except Exception as e:
-            logger.error(f"MongoDB find_many error: {str(e)}", exc_info=True)
+            logger.error(f"Error in find_many operation: {str(e)}")
             raise
 
-    def insert_one(self, collection: str, document: Dict) -> str:
+    async def insert_one(self, collection: str, document: Dict[str, Any]) -> str:
         """Insert a single document"""
         try:
-            if not self.client:
-                self.connect()
-            result = self.db[collection].insert_one(document)
-            return str(result.inserted_id)
+            logger.info(f"Inserting document into {collection}: {document}")
+            result = await self.db[collection].insert_one(document)
+            inserted_id = str(result.inserted_id)
+            logger.info(f"Document inserted with ID: {inserted_id}")
+            return inserted_id
         except Exception as e:
-            logger.error(f"MongoDB insert_one error: {str(e)}", exc_info=True)
+            logger.error(f"Error in insert_one operation: {str(e)}")
             raise
 
-    def update_one(self, collection: str, query: Dict, update: Dict) -> bool:
+    async def update_one(self, collection: str, filter_dict: dict, update_dict: dict) -> bool:
         """Update a single document"""
         try:
-            if not self.client:
-                self.connect()
-            result = self.db[collection].update_one(query, {"$set": update})
-            return result.modified_count > 0
+            logger.info(f"Updating document in {collection}")
+            logger.info(f"Filter: {filter_dict}")
+            logger.info(f"Update: {update_dict}")
+            result = await self.db[collection].update_one(
+                filter_dict,
+                {"$set": update_dict}
+            )
+            success = result.modified_count > 0
+            logger.info(f"Update success: {success}")
+            return success
         except Exception as e:
-            logger.error(f"MongoDB update_one error: {str(e)}", exc_info=True)
+            logger.error(f"Error in update_one operation: {str(e)}")
             raise
 
-    def delete_one(self, collection: str, query: Dict) -> bool:
+    def delete_one(self, collection: str, query: Dict[str, Any]) -> bool:
         """Delete a single document"""
         try:
-            if not self.client:
-                self.connect()
             result = self.db[collection].delete_one(query)
             return result.deleted_count > 0
         except Exception as e:
-            logger.error(f"MongoDB delete_one error: {str(e)}", exc_info=True)
+            logger.error(f"Error in delete_one operation: {str(e)}")
             raise
 
-    async def find_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
+    def find_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
         """Find a user by email"""
         try:
-            if not self.client:
-                self.connect()
-            return self.db["users"].find_one({"email": email})
+            result = self.db["users"].find_one({"email": email})
+            logger.info(f"Found user by email: {email}")
+            return result
         except Exception as e:
-            logger.error(f"MongoDB find_user_by_email error: {str(e)}", exc_info=True)
+            logger.error(f"Error in find_user_by_email operation: {str(e)}")
             raise
 
-    async def create_user(self, user_data: Dict[str, Any]) -> str:
+    def create_user(self, user_data: Dict[str, Any]) -> str:
         """Create a new user"""
         try:
-            if not self.client:
-                self.connect()
-            result = self.db["users"].insert_one(user_data)
-            return str(result.inserted_id)
+            result = self.insert_one("users", user_data)
+            logger.info(f"Created new user: {user_data.get('email')}")
+            return result
         except Exception as e:
-            logger.error(f"MongoDB create_user error: {str(e)}", exc_info=True)
+            logger.error(f"Error in create_user operation: {str(e)}")
             raise 

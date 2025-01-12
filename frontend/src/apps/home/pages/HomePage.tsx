@@ -3,7 +3,7 @@ import { useAuth } from '@/shared/contexts/AuthContext'
 import { Navigate } from 'react-router-dom'
 
 const HomePage: FC = () => {
-  const { user, isLoading } = useAuth()
+  const { user, isLoading, isNewUser } = useAuth()
 
   if (isLoading) {
     return <div>Loading...</div>
@@ -17,10 +17,16 @@ const HomePage: FC = () => {
     <div className="space-y-6">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Welcome back, {user.name || 'User'}!
+          {isNewUser 
+            ? `Welcome onboard, ${user.name || 'User'}!`
+            : `Welcome back, ${user.name || 'User'}!`
+          }
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
-          We're glad to see you again.
+          {isNewUser
+            ? "Your account has been created successfully. Let's get started!"
+            : "We're glad to see you again."
+          }
         </p>
       </div>
 

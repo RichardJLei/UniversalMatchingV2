@@ -1,39 +1,39 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
 
 class DatabaseService(ABC):
     @abstractmethod
-    def connect(self) -> None:
-        """Connect to the database"""
+    async def connect(self) -> None:
+        """Establish connection to database"""
         pass
 
     @abstractmethod
-    def disconnect(self) -> None:
-        """Disconnect from the database"""
+    async def disconnect(self) -> None:
+        """Close database connection"""
         pass
 
     @abstractmethod
-    def find_one(self, collection: str, query: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Find a single document"""
+    async def find_one(self, collection: str, query: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Find single document"""
         pass
 
     @abstractmethod
-    def find_many(self, collection: str, query: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def find_many(self, collection: str, query: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Find multiple documents"""
         pass
 
     @abstractmethod
-    def insert_one(self, collection: str, document: Dict[str, Any]) -> str:
+    async def insert_one(self, collection: str, document: Dict[str, Any]) -> str:
         """Insert a single document"""
         pass
 
     @abstractmethod
-    def update_one(self, collection: str, query: Dict[str, Any], update: Dict[str, Any]) -> bool:
+    async def update_one(self, collection: str, query: Dict[str, Any], update: Dict[str, Any]) -> bool:
         """Update a single document"""
         pass
 
     @abstractmethod
-    def delete_one(self, collection: str, query: Dict[str, Any]) -> bool:
+    async def delete_one(self, collection: str, query: Dict[str, Any]) -> bool:
         """Delete a single document"""
         pass
 
@@ -42,6 +42,7 @@ class DatabaseService(ABC):
         """Find a user by email"""
         pass
 
+    @abstractmethod
     async def create_user(self, user_data: Dict[str, Any]) -> str:
         """Create a new user"""
-        return await self.insert_one("users", user_data) 
+        pass 

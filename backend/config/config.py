@@ -73,8 +73,14 @@ class Config(BaseSettings):
 
     @property
     def MONGODB_CONNECTION_STRING(self) -> str:
-        return self.DATABASE_CONNECTION_STRING
+        """MongoDB connection string property"""
+        if not hasattr(self, '_mongodb_connection_string'):
+            self._mongodb_connection_string = self.DATABASE_CONNECTION_STRING
+        return self._mongodb_connection_string
 
     @property
     def MONGODB_DATABASE(self) -> str:
-        return self.DATABASE_NAME 
+        """MongoDB database name property"""
+        if not hasattr(self, '_mongodb_database'):
+            self._mongodb_database = self.DATABASE_NAME
+        return self._mongodb_database 

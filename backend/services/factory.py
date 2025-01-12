@@ -6,6 +6,7 @@ from .implementations.auth.firebase_auth import FirebaseAuthService
 from .implementations.database.mongodb import MongoDBService
 from .implementations.storage.gcs import GCSStorageService
 from config.settings import Config
+import os
 
 # Singleton instances
 _auth_service: Optional[AuthService] = None
@@ -36,10 +37,10 @@ def get_database_service() -> DatabaseService:
     global _database_service
     if _database_service is None:
         config = get_config()
-        if config.DATABASE_PROVIDER == 'mongodb':
-            _database_service = MongoDBService(config)
-        else:
-            raise ValueError(f"Unsupported database provider: {config.DATABASE_PROVIDER}")
+        _database_service = MongoDBService(
+            connection_string=config.DATABASE_CONNECTION_STRING,
+            database=config.DATABASE_NAME
+        )
     return _database_service
 
 def get_storage_service() -> StorageService:

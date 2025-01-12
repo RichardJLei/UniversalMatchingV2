@@ -6,6 +6,7 @@ import { FirebaseAuthService } from '../services/implementations/firebase/fireba
 interface AuthContextType {
   user: User | null
   isLoading: boolean
+  isNewUser: boolean
   signIn: () => Promise<void>
   signOut: () => Promise<void>
 }
@@ -19,30 +20,44 @@ interface AuthProviderProps {
 export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isNewUser, setIsNewUser] = useState(false)
   const authService: AuthService = new FirebaseAuthService()
   const navigate = useNavigate()
 
   useEffect(() => {
+    let isMounted = true;
+
     const initAuth = async () => {
       try {
-        const currentUser = await authService.getCurrentUser()
-        setUser(currentUser)
-        navigate('/home')
+        const response = await authService.getCurrentUser();
+        if (isMounted) {
+          setUser(response.user);
+          setIsNewUser(response.isNewUser);
+          if (response.user) {
+            navigate('/home');
+          }
+        }
       } catch (error) {
-        console.error('Error initializing auth:', error)
+        console.error('Error initializing auth:', error);
       } finally {
-        setIsLoading(false)
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
-    }
+    };
 
-    initAuth()
-  }, [navigate])
+    initAuth();
+    return () => {
+      isMounted = false;
+    };
+  }, [navigate]);
 
   const signIn = async () => {
     try {
-      const user = await authService.signInWithGoogle()
+      const { user, isNewUser: newUser } = await authService.signInWithGoogle()
       if (user) {
         setUser(user)
+        setIsNewUser(newUser)
         navigate('/home')
       }
     } catch (error: any) {
@@ -55,15 +70,17 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     try {
       await authService.signOut()
       setUser(null)
-      navigate('/home')
+      setIsNewUser(false)
+      navigate('/')
     } catch (error) {
       console.error('Error signing out:', error)
       setUser(null)
+      setIsNewUser(false)
     }
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, isLoading, isNewUser, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   )

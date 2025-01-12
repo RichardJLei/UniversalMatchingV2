@@ -50,11 +50,9 @@ export class FirebaseAuthService implements AuthService {
     });
   }
 
-  private async validateWithBackend(firebaseUser: FirebaseUser, retryCount = 0): Promise<void> {
+  private async validateWithBackend(firebaseUser: FirebaseUser): Promise<{ isNewUser: boolean }> {
     try {
-        // Get a fresh token
-        const token = await firebaseUser.getIdToken(true);  // Force refresh
-        
+        const token = await firebaseUser.getIdToken(true);
         const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/validate`, {
             method: 'POST',
             headers: {
@@ -65,49 +63,46 @@ export class FirebaseAuthService implements AuthService {
         });
 
         if (!response.ok) {
-            const error = await response.json();
-            console.error('Backend validation error:', error);
-            
-            // Retry once if it's a timing-related error and we haven't retried yet
-            if (retryCount === 0 && error.error?.includes('Token used too early')) {
-                console.log('Retrying validation after timing error...');
-                // Wait a second before retrying
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                return this.validateWithBackend(firebaseUser, retryCount + 1);
-            }
-            return;
+            throw new Error('Backend validation failed');
         }
 
         const data = await response.json();
-        console.log('Backend validation successful:', data);
+        console.log('Backend validation response:', data); // Debug log
+        return { 
+            isNewUser: data.is_new_user 
+        };
     } catch (error) {
         console.warn('Backend validation failed:', error);
-        // Don't throw error, continue with client-side auth
+        return { isNewUser: false };
     }
   }
 
-  async signInWithGoogle(): Promise<User | null> {
+  async signInWithGoogle(): Promise<AuthResponse> {
     try {
         const result = await signInWithPopup(auth, this.provider);
+        const { isNewUser } = await this.validateWithBackend(result.user);
         
-        // Always try to validate with backend
-        await this.validateWithBackend(result.user);
+        console.log('Sign in response - isNewUser:', isNewUser); // Debug log
         
         return {
-            id: result.user.uid,
-            email: result.user.email!,
-            name: result.user.displayName,
-            photoURL: result.user.photoURL,
-            lastLogin: new Date(result.user.metadata.lastSignInTime!)
+            user: {
+                id: result.user.uid,
+                email: result.user.email!,
+                name: result.user.displayName,
+                photoURL: result.user.photoURL,
+                lastLogin: new Date(result.user.metadata.lastSignInTime!)
+            },
+            isNewUser
         };
     } catch (error: any) {
         console.error('Error signing in with Google:', error);
-        
         if (error.code === 'auth/popup-closed-by-user' || 
             error.code === 'auth/cancelled-popup-request') {
-            return null;
+            return {
+                user: null,
+                isNewUser: false
+            };
         }
-        
         throw error;
     }
   }
@@ -131,17 +126,27 @@ export class FirebaseAuthService implements AuthService {
     }
   }
 
-  async getCurrentUser(): Promise<User | null> {
+  async getCurrentUser(): Promise<AuthResponse> {
     return new Promise((resolve) => {
       onAuthStateChanged(auth, (user) => {
-        resolve(user ? {
-          id: user.uid,
-          email: user.email!,
-          name: user.displayName,
-          photoURL: user.photoURL,
-          lastLogin: new Date(user.metadata.lastSignInTime!)
-        } : null)
-      })
-    })
+        if (user) {
+          resolve({
+            user: {
+              id: user.uid,
+              email: user.email!,
+              name: user.displayName,
+              photoURL: user.photoURL,
+              lastLogin: new Date(user.metadata.lastSignInTime!)
+            },
+            isNewUser: false  // Default to false for existing sessions
+          });
+        } else {
+          resolve({
+            user: null,
+            isNewUser: false
+          });
+        }
+      });
+    });
   }
 } 
